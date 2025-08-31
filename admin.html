@@ -1,0 +1,42 @@
+<h2>Gerenciamento de Slides</h2>
+<ul id="slides"></ul>
+
+<h2>Criar Usuário</h2>
+<input id="newUsername" placeholder="Nome"><br>
+<input id="newUsermail" placeholder="Email"><br>
+<input id="newPassword" type="password" placeholder="Senha"><br>
+<select id="newLevel">
+<option value="0">Comum</option>
+<option value="1">Admin</option>
+</select><br>
+<button onclick="criarUser()">Criar Usuário</button>
+
+<h2>Exportar Slides</h2>
+<button onclick="exportar('pdf','weekly')">Exportar Semanal PDF</button>
+<button onclick="exportar('docx','weekly')">Exportar Semanal DOCX</button>
+<br><br>
+<button onclick="exportar('pdf','monthly')">Exportar Mensal PDF</button>
+<button onclick="exportar('docx','monthly')">Exportar Mensal DOCX</button>
+
+<script>
+const user = JSON.parse(localStorage.getItem("user"));
+if(!user || user.level!==1){ alert("Acesso restrito"); window.location.href="login.html"; }
+
+async function carregarSlides(){
+  const res=await fetch("http://localhost:3000/tema/list/full");
+  const slides=await res.json();
+  const ul=document.getElementById("slides");
+  ul.innerHTML="";
+  slides.forEach(s=>{
+    const li=document.createElement("li");
+    li.innerHTML=`<b>${s.slide.assunto}</b> - ${s.slide.texto} (autor: ${s.userId.username}, em: ${new Date(s.slide.data).toLocaleString("pt-BR")})
+      <button onclick="editar('${s._id}')">Editar</button>
+      <button onclick="excluir('${s._id}')">Excluir</button>`;
+    ul.appendChild(li);
+  });
+}
+
+async function editar(id){
+  const assunto=prompt("Novo assunto:");
+  const texto=prompt("Novo texto:");
+  const res=await fetch(`http://localhost
