@@ -1,0 +1,42 @@
+<h2>Novo Slide</h2>
+<input id="assunto" placeholder="Assunto"><br>
+<textarea id="texto" placeholder="Texto"></textarea><br>
+<button onclick="cadastrar()">Cadastrar</button>
+
+<h3>Assuntos já cadastrados</h3>
+<ul id="lista"></ul>
+
+<script>
+const user = JSON.parse(localStorage.getItem("user"));
+if(!user){ window.location.href = "login.html"; }
+
+async function cadastrar() {
+  const res = await fetch("http://localhost:3000/tema/add", {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({
+      userId: user.id,
+      level: user.level,
+      assunto: document.getElementById("assunto").value,
+      texto: document.getElementById("texto").value
+    })
+  });
+  const data = await res.json();
+  alert(data.message || data.error);
+  carregarLista();
+}
+
+async function carregarLista(){
+  const res = await fetch("http://localhost:3000/tema/list/basic");
+  const data = await res.json();
+  const lista = document.getElementById("lista");
+  lista.innerHTML="";
+  data.forEach(s=>{
+    const li=document.createElement("li");
+    li.textContent=`${s.assunto} (autor: ${s.autor}, em: ${new Date(s.data).toLocaleString("pt-BR")})`;
+    lista.appendChild(li);
+  });
+}
+
+carregarLista();
+</script>
