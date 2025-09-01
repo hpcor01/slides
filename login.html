@@ -5,7 +5,7 @@
 
 <script>
 async function login() {
-  const res = await fetch("http://localhost:3000/auth/login", {
+  const res = await fetch("/auth/login", {  <!-- ✅ aqui -->
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -14,9 +14,9 @@ async function login() {
     })
   });
   const data = await res.json();
-  if(data.error){ alert(data.error); return; }
+  if (data.error) { alert(data.error); return; }
   localStorage.setItem("user", JSON.stringify(data));
-  if(data.level === 0) window.location.href = "index.html";
+  if (data.level === 0) window.location.href = "index.html";
   else window.location.href = "admin.html";
 }
 </script>
