@@ -11,7 +11,7 @@ const user = JSON.parse(localStorage.getItem("user"));
 if(!user){ window.location.href = "login.html"; }
 
 async function cadastrar() {
-  const res = await fetch("http://localhost:3000/tema/add", {
+  const res = await fetch("/tema/add", {
     method:"POST",
     headers:{"Content-Type":"application/json"},
     body:JSON.stringify({
@@ -27,7 +27,7 @@ async function cadastrar() {
 }
 
 async function carregarLista(){
-  const res = await fetch("http://localhost:3000/tema/list/basic");
+  const res = await fetch("/tema/list/basic");
   const data = await res.json();
   const lista = document.getElementById("lista");
   lista.innerHTML="";
