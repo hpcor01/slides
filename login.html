@@ -50,3 +50,82 @@
     }
 
     .input-group i {
+      position: absolute;
+      top: 50%;
+      left: 12px;
+      transform: translateY(-50%);
+      color: #666;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      background: #4e73df;
+      color: #fff;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    button:hover {
+      background: #375ac0;
+    }
+
+    .error {
+      margin-top: 1rem;
+      text-align: center;
+      color: red;
+      font-size: 0.9rem;
+    }
+  </style>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+</head>
+<body>
+  <div class="login-container">
+    <h2>Login</h2>
+    <div class="input-group">
+      <i class="fa fa-user"></i>
+      <input type="email" id="email" placeholder="E-mail" required>
+    </div>
+    <div class="input-group">
+      <i class="fa fa-lock"></i>
+      <input type="password" id="senha" placeholder="Senha" required>
+    </div>
+    <button onclick="login()">Entrar</button>
+    <div class="error" id="error-msg"></div>
+  </div>
+
+  <script>
+    async function login() {
+      const usermail = document.getElementById("email").value;
+      const password = document.getElementById("senha").value;
+      const errorMsg = document.getElementById("error-msg");
+      errorMsg.textContent = "";
+
+      try {
+        const response = await fetch("https://SEU-BACKEND.onrender.com/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ usermail, password })
+        });
+
+        if (!response.ok) {
+          errorMsg.textContent = "Usuário ou senha inválidos.";
+          return;
+        }
+
+        const data = await response.json();
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("level", data.level);
+        window.location.href = "index.html";
+      } catch (err) {
+        errorMsg.textContent = "Erro ao conectar ao servidor.";
+        console.error(err);
+      }
+    }
+  </script>
+</body>
+</html>
