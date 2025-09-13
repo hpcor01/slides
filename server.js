@@ -23,6 +23,10 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "login.html"));
 });
 
+// Rotas de slides
+const slidesRoutes = require("./slides");
+app.use("/slides", slidesRoutes);
+
 // Teste rápido para saber se o servidor está vivo
 app.get("/ping", (req, res) => {
   res.send("Servidor ativo 🚀");
