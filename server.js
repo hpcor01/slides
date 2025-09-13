@@ -1,33 +1,34 @@
-// server.js
 const express = require("express");
-const mongoose = require("mongoose");
-const cors = require("cors");
 const path = require("path");
+const bodyParser = require("body-parser");
+const cors = require("cors");
 
 const app = express();
-app.use(cors());
-app.use(express.json());
+const PORT = process.env.PORT || 3000;
 
-// (opcional) se criar uma pasta /public com login.html, index.html, admin.html:
+// Middleware
+app.use(cors());
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+
+// Servir arquivos estáticos da pasta "public"
 app.use(express.static(path.join(__dirname, "public")));
 
-// 🔗 registre as rotas que existem
-app.use("/auth", require("./auth"));
-// (quando tiver as outras prontas, descomente)
-// app.use("/tema", require("./tema"));
-// app.use("/admin", require("./admin"));
-// app.use("/export", require("./export"));
+// Rotas de autenticação
+const authRoutes = require("./auth");
+app.use("/auth", authRoutes);
 
-// rota simples só para teste de vida
-app.get("/", (req, res) => res.send("Servidor rodando! 🎉"));
+// Rota inicial → login.html
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "login.html"));
+});
 
-// Conexão Mongo (use MONGO_URL no Render)
-mongoose.connect(process.env.MONGO_URL, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
-.then(() => console.log("✅ Conectado ao MongoDB"))
-.catch(err => console.error("❌ Erro MongoDB:", err));
+// Teste rápido para saber se o servidor está vivo
+app.get("/ping", (req, res) => {
+  res.send("Servidor ativo 🚀");
+});
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🚀 Servidor na porta ${PORT}`));
+// Start server
+app.listen(PORT, () => {
+  console.log(`Servidor rodando na porta ${PORT}`);
+});
