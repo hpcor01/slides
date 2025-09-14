@@ -18,10 +18,9 @@ const slideSchema = new mongoose.Schema({
   autor: { type: String, default: 'Usuário Teste' },
   data: { type: Date, default: Date.now }
 });
-
 const Slide = mongoose.model('Slide', slideSchema);
 
-// Crie o Router Express
+// Cria o Router Express
 const router = express.Router();
 
 // GET /slides
