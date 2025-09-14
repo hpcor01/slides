@@ -20,7 +20,7 @@ app.use("/auth", authRoutes);
 
 // Rota inicial → login.html
 app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "login.html"));
+  res.sendFile(__dirname + "/login.html");
 });
 
 // Rotas de slides
@@ -36,3 +36,4 @@ app.get("/ping", (req, res) => {
 app.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);
 });
+
