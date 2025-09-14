@@ -3,39 +3,45 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sistema de Slides Jurídico - Cadastrar Slide</title>
+  <title>Sistema de Slides Jurídico - Cadastar Slides</title>
+  <!-- Bootstrap CSS e Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
   <style>
     body { font-family: Arial, sans-serif; margin:0; padding:0; display:flex; flex-direction:column; min-height:100vh; }
     header { background:#007bff; color:white; padding:20px; text-align:center; }
     main { flex:1; padding:20px; max-width:800px; margin:auto; }
     form { margin-bottom:30px; border:1px solid #ccc; padding:20px; border-radius:8px; }
     form input, form textarea { width:100%; padding:10px; margin:8px 0; box-sizing:border-box; }
-    form button { padding:10px 20px; background:#007bff; color:white; border:none; border-radius:4px; cursor:pointer; }
+    form button { padding:10px 20px; background:#007bff; color:white; border:none; border-radius:4px; cursor:pointer; display: flex; align-items: center; gap: 8px; }
     form button:hover { background:#0056b3; }
     .slide { border:1px solid #ddd; padding:15px; border-radius:8px; margin-bottom:15px; }
     .slide h3 { margin:0 0 5px 0; }
+    .slide-date { font-size:0.95em; color:#666; }
+    #changelog { background:#f8f9fa; border-top:1px solid #e1e1e1; margin-top:32px; padding:18px 0 10px 0; }
+    #changelog h4 { margin-top:0; }
     footer { text-align:center; padding:15px; background:#f2f2f2; }
     footer a { text-decoration:none; color:#007bff; }
     footer a:hover { text-decoration:underline; }
+    .version { font-weight: bold; color: #007bff; }
   </style>
 </head>
 <body>
   <header>
-    <h1>Cadastro de Slides</h1>
+    <h1>Cadastrar Slides</h1>
   </header>
 
   <main>
     <form id="slideForm">
-      <label for="data">Data:</label>
-      <input type="date" id="data" name="data" required>
-
       <label for="assunto">Assunto:</label>
       <input type="text" id="assunto" name="assunto" required>
 
       <label for="texto">Texto:</label>
       <textarea id="texto" name="texto" rows="5" required></textarea>
 
-      <button type="submit">Cadastrar Slide</button>
+      <button type="submit">
+        <i class="bi bi-plus-circle"></i> Cadastrar Slide
+      </button>
     </form>
 
     <h2>Slides Cadastrados</h2>
@@ -45,22 +51,25 @@
   </main>
 
   <footer>
-    Desenvolvido por <a href="mailto:hugo.portelinha@gmail.com">Hugo Portelinha Cordeiro</a> | &copy; <span id="anoAtual"></span>
+    Desenvolvido por <a href="mailto:hugo.portelinha@gmail.com">Hugo Portelinha Cordeiro</a> |
+    <span class="version">Versão 1.0</span> |
+    &copy; <span id="anoAtual"></span>
   </footer>
 
   <script>
-    // Atualiza o ano automaticamente
     document.getElementById('anoAtual').textContent = new Date().getFullYear();
 
     const API_URL = "https://slides-629o.onrender.com";
     const slidesList = document.getElementById('slidesList');
+    let slidesCache = [];
 
-    // Função para carregar slides do backend
+    // Carrega slides do backend
     async function fetchSlides() {
       try {
         const response = await fetch(`${API_URL}/slides`);
         if (!response.ok) throw new Error('Erro ao buscar slides: ' + response.statusText);
         const slides = await response.json();
+        slidesCache = slides;
         renderSlides(slides);
       } catch (err) {
         slidesList.innerHTML = `<p>Erro ao carregar slides: ${err.message}</p>`;
@@ -76,15 +85,19 @@
       }
 
       slides.forEach(slide => {
-        // Estrutura de slide conforme backend (slides.js)
         const s = slide.slide || slide; // Suporta ambos formatos
         const autor = slide.autor || 'Desconhecido';
+        let dataFormatada = '[Sem Data]';
+        if (s.data) {
+          const d = new Date(s.data);
+          dataFormatada = isNaN(d.getTime()) ? '[Sem Data]' : d.toLocaleDateString("pt-BR") + ' ' + d.toLocaleTimeString("pt-BR");
+        }
 
         const div = document.createElement('div');
         div.className = 'slide';
         div.innerHTML = `
           <h3>${s.assunto || '[Sem Assunto]'}</h3>
-          <p><strong>Data:</strong> ${s.data ? (new Date(s.data).toLocaleDateString("pt-BR")) : '[Sem Data]'}</p>
+          <div class="slide-date"><strong>Data cadastro:</strong> ${dataFormatada}</div>
           <p>${s.texto || '[Sem Texto]'}</p>
           <p><em>Autor: ${autor}</em></p>
         `;
@@ -92,20 +105,35 @@
       });
     }
 
+    // Validação de assunto repetido
+    function temaRepetido(novoAssunto) {
+      if (!slidesCache || slidesCache.length === 0) return false;
+      novoAssunto = novoAssunto.trim().toLowerCase();
+      return slidesCache.some(slide => {
+        const s = slide.slide || slide;
+        return s.assunto && s.assunto.trim().toLowerCase() === novoAssunto;
+      });
+    }
+
     // Evento de submit do formulário
     document.getElementById('slideForm').addEventListener('submit', async function(e) {
       e.preventDefault();
 
-      const data = document.getElementById('data').value;
-      const assunto = document.getElementById('assunto').value;
-      const texto = document.getElementById('texto').value;
+      const assunto = document.getElementById('assunto').value.trim();
+      const texto = document.getElementById('texto').value.trim();
       const autor = "Usuário Comum"; // Ajuste para usuário real se quiser
+
+      // Validação de assunto repetido
+      if (temaRepetido(assunto)) {
+        alert("Já existe um slide cadastrado com esse assunto. Escolha outro tema.");
+        return;
+      }
 
       try {
         const response = await fetch(`${API_URL}/slides`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ data, assunto, texto, autor })
+          body: JSON.stringify({ assunto, texto, autor })
         });
         const result = await response.json();
         if (!response.ok) throw new Error(result.error || 'Erro ao cadastrar slide');
