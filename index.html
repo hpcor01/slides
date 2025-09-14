@@ -3,32 +3,41 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sistema de Slides Jurídico - Cadastar Slides</title>
+  <title>Sistema de Slides Jurídico - Cadastrar Slides</title>
   <!-- Bootstrap CSS e Icons -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
   <style>
-    body { font-family: Arial, sans-serif; margin:0; padding:0; display:flex; flex-direction:column; min-height:100vh; }
+    body { font-family: Arial, sans-serif; margin:0; padding-top:56px; display:flex; flex-direction:column; min-height:100vh; }
     header { background:#007bff; color:white; padding:20px; text-align:center; }
     main { flex:1; padding:20px; max-width:800px; margin:auto; }
     form { margin-bottom:30px; border:1px solid #ccc; padding:20px; border-radius:8px; }
     form input, form textarea { width:100%; padding:10px; margin:8px 0; box-sizing:border-box; }
     form button { padding:10px 20px; background:#007bff; color:white; border:none; border-radius:4px; cursor:pointer; display: flex; align-items: center; gap: 8px; }
-    form button:hover { background:#0056b3; }
+    form button:hover:not([disabled]) { background:#0056b3; }
+    form button:disabled { background:#6c757d; cursor:not-allowed; }
     .slide { border:1px solid #ddd; padding:15px; border-radius:8px; margin-bottom:15px; }
     .slide h3 { margin:0 0 5px 0; }
     .slide-date { font-size:0.95em; color:#666; }
-    #changelog { background:#f8f9fa; border-top:1px solid #e1e1e1; margin-top:32px; padding:18px 0 10px 0; }
-    #changelog h4 { margin-top:0; }
     footer { text-align:center; padding:15px; background:#f2f2f2; }
     footer a { text-decoration:none; color:#007bff; }
     footer a:hover { text-decoration:underline; }
     .version { font-weight: bold; color: #007bff; }
+    .navbar { position: fixed; top: 0; width: 100%; z-index: 1000; }
   </style>
 </head>
 <body>
+  <!-- Navbar com data dinâmica -->
+  <nav class="navbar navbar-dark bg-primary">
+    <div class="container-fluid justify-content-center">
+      <span class="navbar-brand mb-0 h1" id="navbarData">
+        <i class="bi bi-calendar-event"></i>
+      </span>
+    </div>
+  </nav>
+
   <header>
-    <h1>Cadastrar Slides</h1>
+    <h1>Cadastro de Slides</h1>
   </header>
 
   <main>
@@ -39,7 +48,7 @@
       <label for="texto">Texto:</label>
       <textarea id="texto" name="texto" rows="5" required></textarea>
 
-      <button type="submit">
+      <button type="submit" id="btnCadastrar">
         <i class="bi bi-plus-circle"></i> Cadastrar Slide
       </button>
     </form>
@@ -57,6 +66,22 @@
   </footer>
 
   <script>
+    // Função para data no extenso
+    function formatarDataExtenso(data) {
+      const meses = [
+        "janeiro", "fevereiro", "março", "abril", "maio", "junho",
+        "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"
+      ];
+      const dia = data.getDate();
+      const mes = meses[data.getMonth()];
+      const ano = data.getFullYear();
+      return `${dia} de ${mes} de ${ano}`;
+    }
+    // Insere a data na navbar
+    document.getElementById('navbarData').innerHTML =
+      `<i class="bi bi-calendar-event"></i> ${formatarDataExtenso(new Date())}`;
+
+    // Atualiza o ano automaticamente no rodapé
     document.getElementById('anoAtual').textContent = new Date().getFullYear();
 
     const API_URL = "https://slides-629o.onrender.com";
@@ -85,7 +110,7 @@
       }
 
       slides.forEach(slide => {
-        const s = slide.slide || slide; // Suporta ambos formatos
+        const s = slide.slide || slide;
         const autor = slide.autor || 'Desconhecido';
         let dataFormatada = '[Sem Data]';
         if (s.data) {
@@ -118,14 +143,24 @@
     // Evento de submit do formulário
     document.getElementById('slideForm').addEventListener('submit', async function(e) {
       e.preventDefault();
+      const btn = document.getElementById('btnCadastrar');
+      btn.disabled = true;
 
       const assunto = document.getElementById('assunto').value.trim();
       const texto = document.getElementById('texto').value.trim();
-      const autor = "Usuário Comum"; // Ajuste para usuário real se quiser
+      const autor = "Usuário Comum";
 
       // Validação de assunto repetido
       if (temaRepetido(assunto)) {
         alert("Já existe um slide cadastrado com esse assunto. Escolha outro tema.");
+        btn.disabled = false;
+        return;
+      }
+
+      // Validação de campos obrigatórios (extra, para garantir)
+      if (!assunto || !texto) {
+        alert("Preencha todos os campos obrigatórios.");
+        btn.disabled = false;
         return;
       }
 
@@ -143,6 +178,7 @@
       } catch (err) {
         alert("Erro ao cadastrar slide: " + err.message);
       }
+      btn.disabled = false;
     });
 
     // Carrega os slides ao abrir a página
