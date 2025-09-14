@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 // URI do MongoDB Atlas
 const MONGODB_URI = 'mongodb+srv://sysdba:LFpxAegi7gMZuHlT@eightcluster.nblda.mongodb.net/?retryWrites=true&w=majority&appName=eightCluster';
 
+// Conexão MongoDB (apenas UMA vez)
 mongoose.connect(MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true
@@ -11,19 +12,18 @@ mongoose.connect(MONGODB_URI, {
   .then(() => console.log('Conectado ao MongoDB!'))
   .catch(err => console.error('Erro ao conectar ao MongoDB:', err));
 
-// Schema e model do Slide
+// Schema/model
 const slideSchema = new mongoose.Schema({
   assunto: { type: String, required: true },
   texto: { type: String, required: true },
-  autor: { type: String, default: 'Usuário Teste' },
+  autor: { type: String, default: 'Usuário Comum' },
   data: { type: Date, default: Date.now }
 });
 const Slide = mongoose.model('Slide', slideSchema);
 
-// Cria o Router Express
+// Router Express
 const router = express.Router();
 
-// GET /slides
 router.get("/", async (req, res) => {
   try {
     const slides = await Slide.find().sort({ data: -1 });
@@ -33,10 +33,8 @@ router.get("/", async (req, res) => {
   }
 });
 
-// POST /slides
 router.post("/", async (req, res) => {
   const { assunto, texto, autor } = req.body;
-
   if (
     !assunto || typeof assunto !== "string" || assunto.trim().length === 0 ||
     !texto || typeof texto !== "string" || texto.trim().length === 0
@@ -44,6 +42,7 @@ router.post("/", async (req, res) => {
     return res.status(400).json({ error: "Preencha todos os campos!" });
   }
 
+  // Validação de duplicidade de assunto (case-insensitive)
   const temaExiste = await Slide.findOne({
     assunto: { $regex: `^${assunto.trim()}$`, $options: 'i' }
   });

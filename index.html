@@ -1,199 +1,94 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sistema de Slides Jurídico - Cadastrar Slide</title>
-  <!-- Bootstrap CSS e Icons -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+  <meta charset="UTF-8" />
+  <title>Cadastro de Slides Jurídicos</title>
   <style>
-    body { font-family: Arial, sans-serif; margin:0; padding-top:56px; display:flex; flex-direction:column; min-height:100vh; }
-    header { background:#212529; color:white; padding:20px; text-align:center; }
-    main { flex:1; padding:20px; max-width:800px; margin:auto; }
-    form { margin-bottom:30px; border:1px solid #ccc; padding:20px; border-radius:8px; }
-    form input, form textarea { width:100%; padding:10px; margin:8px 0; box-sizing:border-box; }
-    form button {
-      padding:10px 20px;
-      background:#0056b3; /* Azul escuro */
-      color:white;
-      border:none;
-      border-radius:4px;
-      cursor:pointer;
-      display: flex; align-items: center; gap: 8px;
-      transition: background 0.2s;
-    }
-    form button:hover:not([disabled]) { background:#003a75; }
-    form button:disabled { background:#6c757d; cursor:not-allowed; }
-    .slide { border:1px solid #ddd; padding:15px; border-radius:8px; margin-bottom:15px; }
-    .slide h3 { margin:0 0 5px 0; }
-    .slide-date { font-size:0.95em; color:#666; }
-    #changelog { background:#f8f9fa; border-top:1px solid #e1e1e1; margin-top:32px; padding:18px 0 10px 0; }
-    #changelog h4 { margin-top:0; }
-    footer { text-align:center; padding:15px; background:#f2f2f2; }
-    footer a { text-decoration:none; color:#007bff; }
-    footer a:hover { text-decoration:underline; }
-    .version { font-weight: bold; color: #007bff; }
-    .navbar { position: fixed; top: 0; width: 100%; z-index: 1000; }
+    body { font-family: Arial, sans-serif; margin: 40px; }
+    h1 { color: #333; }
+    form { margin-bottom: 24px; }
+    label { display: block; margin-top: 10px; }
+    input, textarea { width: 100%; padding: 8px; margin-top: 3px; box-sizing: border-box; }
+    button { margin-top: 10px; padding: 8px 24px; }
+    .slide { background: #f4f4f4; margin-bottom: 18px; padding: 14px; border-radius: 6px; }
+    .erro { color: red; margin-bottom: 10px; }
+    .sucesso { color: green; margin-bottom: 10px; }
   </style>
 </head>
 <body>
-  <!-- Navbar da data (cinza claro/médio) -->
-  <nav class="navbar navbar-dark bg-secondary">
-    <div class="container-fluid justify-content-center">
-      <span class="navbar-brand mb-0 h1" id="navbarData">
-        <i class="bi bi-calendar-event"></i>
-      </span>
-    </div>
-  </nav>
+  <h1>Cadastro de Slides Jurídicos</h1>
+  <form id="slideForm">
+    <label for="assunto">Assunto:</label>
+    <input type="text" id="assunto" name="assunto" required />
 
-  <!-- Header preto -->
-  <header>
-    <h1>Cadastrar Slides</h1>
-  </header>
+    <label for="texto">Texto:</label>
+    <textarea id="texto" name="texto" rows="4" required></textarea>
 
-  <main>
-    <form id="slideForm" autocomplete="off">
-      <label for="assunto">Assunto:</label>
-      <input type="text" id="assunto" name="assunto" required autocomplete="off">
+    <label for="autor">Autor:</label>
+    <input type="text" id="autor" name="autor" />
 
-      <label for="texto">Texto:</label>
-      <textarea id="texto" name="texto" rows="5" required autocomplete="off"></textarea>
+    <button type="submit">Cadastrar Slide</button>
+    <div id="msg"></div>
+  </form>
 
-      <button type="submit" id="btnCadastrar">
-        <i class="bi bi-plus-circle"></i> Cadastrar Slide
-      </button>
-    </form>
-
-    <h2>Slides Cadastrados</h2>
-    <div id="slidesList">
-      <p>Carregando slides...</p>
-    </div>
-  </main>
-
-  <footer>
-    Desenvolvido por <a href="mailto:hugo.portelinha@gmail.com">Hugo Portelinha Cordeiro</a> |
-    <span class="version">Versão 1.0</span> |
-    &copy; <span id="anoAtual"></span>
-  </footer>
+  <h2>Slides cadastrados</h2>
+  <div id="slides"></div>
 
   <script>
-    // Função para data no extenso
-    function formatarDataExtenso(data) {
-      const meses = [
-        "janeiro", "fevereiro", "março", "abril", "maio", "junho",
-        "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"
-      ];
-      const dia = data.getDate();
-      const mes = meses[data.getMonth()];
-      const ano = data.getFullYear();
-      return `${dia} de ${mes} de ${ano}`;
-    }
-    // Insere a data na navbar
-    document.getElementById('navbarData').innerHTML =
-      `<i class="bi bi-calendar-event"></i> ${formatarDataExtenso(new Date())}`;
-
-    // Atualiza o ano automaticamente no rodapé
-    document.getElementById('anoAtual').textContent = new Date().getFullYear();
-
-    const API_URL = "https://slides-629o.onrender.com";
-    const slidesList = document.getElementById('slidesList');
-    let slidesCache = [];
-
-    // Carrega slides do backend
     async function fetchSlides() {
+      const slidesDiv = document.getElementById('slides');
+      slidesDiv.innerHTML = '<em>Carregando...</em>';
       try {
-        const response = await fetch(`${API_URL}/slides`);
-        if (!response.ok) throw new Error('Erro ao buscar slides: ' + response.statusText);
-        const slides = await response.json();
-        slidesCache = slides;
-        renderSlides(slides);
-      } catch (err) {
-        slidesList.innerHTML = `<p>Erro ao carregar slides: ${err.message}</p>`;
-      }
-    }
-
-    // Renderiza slides na tela
-    function renderSlides(slides) {
-      slidesList.innerHTML = '';
-      if (!slides || slides.length === 0) {
-        slidesList.innerHTML = '<p>Nenhum slide cadastrado ainda.</p>';
-        return;
-      }
-
-      slides.forEach(slide => {
-        const s = slide.slide || slide;
-        const autor = slide.autor || 'Desconhecido';
-        let dataFormatada = '[Sem Data]';
-        if (s.data) {
-          const d = new Date(s.data);
-          dataFormatada = isNaN(d.getTime()) ? '[Sem Data]' : d.toLocaleDateString("pt-BR") + ' ' + d.toLocaleTimeString("pt-BR");
+        const res = await fetch('/slides');
+        const slides = await res.json();
+        if (Array.isArray(slides) && slides.length > 0) {
+          slidesDiv.innerHTML = slides.map(slide => `
+            <div class="slide">
+              <strong>Assunto:</strong> ${slide.assunto}<br>
+              <strong>Texto:</strong> ${slide.texto}<br>
+              <strong>Autor:</strong> ${slide.autor || 'Usuário Comum'}<br>
+              <small><strong>Data:</strong> ${new Date(slide.data).toLocaleString()}</small>
+            </div>
+          `).join('');
+        } else {
+          slidesDiv.innerHTML = "<em>Nenhum slide cadastrado.</em>";
         }
-
-        const div = document.createElement('div');
-        div.className = 'slide';
-        div.innerHTML = `
-          <h3>${s.assunto || '[Sem Assunto]'}</h3>
-          <div class="slide-date"><strong>Data cadastro:</strong> ${dataFormatada}</div>
-          <p>${s.texto || '[Sem Texto]'}</p>
-          <p><em>Autor: ${autor}</em></p>
-        `;
-        slidesList.appendChild(div);
-      });
+      } catch (err) {
+        slidesDiv.innerHTML = "<span class='erro'>Erro ao carregar slides.</span>";
+      }
     }
 
-    // Validação de assunto repetido
-    function temaRepetido(novoAssunto) {
-      if (!slidesCache || slidesCache.length === 0) return false;
-      novoAssunto = novoAssunto.trim().toLowerCase();
-      return slidesCache.some(slide => {
-        const s = slide.slide || slide;
-        return s.assunto && s.assunto.trim().toLowerCase() === novoAssunto;
-      });
-    }
-
-    // Evento de submit do formulário
     document.getElementById('slideForm').addEventListener('submit', async function(e) {
       e.preventDefault();
-      const btn = document.getElementById('btnCadastrar');
-      btn.disabled = true;
-
-      const assunto = document.getElementById('assunto').value.trim();
-      const texto = document.getElementById('texto').value.trim();
-      const autor = "Usuário Comum";
-
-      // Validação de campos obrigatórios (corrigida)
-      if (assunto.length === 0 || texto.length === 0) {
-        alert("Preencha todos os campos obrigatórios.");
-        btn.disabled = false;
-        return;
-      }
-
-      // Validação de assunto repetido
-      if (temaRepetido(assunto)) {
-        alert("Já existe um slide cadastrado com esse assunto. Escolha outro tema.");
-        btn.disabled = false;
-        return;
-      }
+      const assunto = document.getElementById('assunto').value;
+      const texto = document.getElementById('texto').value;
+      const autor = document.getElementById('autor').value;
+      const msgDiv = document.getElementById('msg');
+      msgDiv.textContent = '';
 
       try {
-        const response = await fetch(`${API_URL}/slides`, {
+        const res = await fetch('/slides', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ assunto, texto, autor })
         });
-        const result = await response.json();
-        if (!response.ok) throw new Error(result.error || 'Erro ao cadastrar slide');
-        alert(result.message || 'Slide cadastrado com sucesso!');
-        this.reset();
-        fetchSlides();
+        const data = await res.json();
+        if (res.ok) {
+          msgDiv.textContent = data.message;
+          msgDiv.className = 'sucesso';
+          this.reset();
+          fetchSlides();
+        } else {
+          msgDiv.textContent = data.error || 'Erro ao cadastrar!';
+          msgDiv.className = 'erro';
+        }
       } catch (err) {
-        alert("Erro ao cadastrar slide: " + err.message);
+        msgDiv.textContent = 'Erro ao cadastrar!';
+        msgDiv.className = 'erro';
       }
-      btn.disabled = false;
     });
 
-    // Carrega os slides ao abrir a página
+    // Carrega slides ao abrir a página
     fetchSlides();
   </script>
 </body>
