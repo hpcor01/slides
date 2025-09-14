@@ -41,10 +41,12 @@ router.post("/", async (req, res) => {
       return res.status(400).json({ error: "Preencha todos os campos!" });
     }
 
-    const novoSlide = {
-      slide: { data, assunto, texto },
-      autor,
-    };
+   const novoSlide = {
+    assunto,
+    texto,
+    autor,
+    data: new Date().toISOString()
+  };
 
     await colTema.insertOne(novoSlide);
     res.json({ message: "Slide cadastrado com sucesso!" });
@@ -55,3 +57,4 @@ router.post("/", async (req, res) => {
 
 module.exports = router;
 console.log("Rotas de slides carregadas ✅");
+
