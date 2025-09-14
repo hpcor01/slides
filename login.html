@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Cadastro de Slides</title>
+  <title>Sistema de Slides Jurídico - Cadastro de Slides</title>
   <style>
     body { font-family: Arial, sans-serif; margin:0; padding:0; display:flex; flex-direction:column; min-height:100vh; }
     header { background:#007bff; color:white; padding:20px; text-align:center; }
@@ -58,6 +58,7 @@
     async function fetchSlides() {
       try {
         const response = await fetch('/slides');
+        if (!response.ok) throw new Error('Erro ao buscar slides: ' + response.statusText);
         const slides = await response.json();
         renderSlides(slides);
       } catch (err) {
@@ -68,19 +69,23 @@
     // Renderiza slides na tela
     function renderSlides(slides) {
       slidesList.innerHTML = '';
-      if (slides.length === 0) {
+      if (!slides || slides.length === 0) {
         slidesList.innerHTML = '<p>Nenhum slide cadastrado ainda.</p>';
         return;
       }
 
       slides.forEach(slide => {
+        // Estrutura de slide conforme backend (slides.js)
+        const s = slide.slide || slide; // Suporta ambos formatos
+        const autor = slide.autor || 'Desconhecido';
+
         const div = document.createElement('div');
         div.className = 'slide';
         div.innerHTML = `
-          <h3>${slide.slide.assunto}</h3>
-          <p><strong>Data:</strong> ${slide.slide.data}</p>
-          <p>${slide.slide.texto}</p>
-          <p><em>Autor: ${slide.autor}</em></p>
+          <h3>${s.assunto || '[Sem Assunto]'}</h3>
+          <p><strong>Data:</strong> ${s.data ? (new Date(s.data).toLocaleDateString("pt-BR")) : '[Sem Data]'}</p>
+          <p>${s.texto || '[Sem Texto]'}</p>
+          <p><em>Autor: ${autor}</em></p>
         `;
         slidesList.appendChild(div);
       });
@@ -93,17 +98,19 @@
       const data = document.getElementById('data').value;
       const assunto = document.getElementById('assunto').value;
       const texto = document.getElementById('texto').value;
-      const autor = "Usuário Comum"; // Aqui você pode substituir pelo username logado
+      const autor = "Usuário Comum"; // Pode substituir pelo usuário logado, se quiser
 
       try {
-        await fetch('/slides', {
+        const response = await fetch('/slides', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ data, assunto, texto, autor })
         });
-
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || 'Erro ao cadastrar slide');
+        alert(result.message || 'Slide cadastrado com sucesso!');
         this.reset();
-        fetchSlides(); // Recarrega a lista
+        fetchSlides();
       } catch (err) {
         alert("Erro ao cadastrar slide: " + err.message);
       }
