@@ -1,10 +1,5 @@
 const express = require('express');
 const mongoose = require('mongoose');
-const cors = require('cors');
-
-const app = express();
-app.use(cors());
-app.use(express.json());
 
 // URI do MongoDB Atlas
 const MONGODB_URI = 'mongodb+srv://sysdba:LFpxAegi7gMZuHlT@eightcluster.nblda.mongodb.net/?retryWrites=true&w=majority&appName=eightCluster';
@@ -20,14 +15,17 @@ mongoose.connect(MONGODB_URI, {
 const slideSchema = new mongoose.Schema({
   assunto: { type: String, required: true },
   texto: { type: String, required: true },
-  autor: { type: String, default: 'Usuário Comum' },
+  autor: { type: String, default: 'Usuário Teste' },
   data: { type: Date, default: Date.now }
 });
 
 const Slide = mongoose.model('Slide', slideSchema);
 
-// GET /slides - lista todos os slides
-app.get('/slides', async (req, res) => {
+// Crie o Router Express
+const router = express.Router();
+
+// GET /slides
+router.get("/", async (req, res) => {
   try {
     const slides = await Slide.find().sort({ data: -1 });
     res.json(slides);
@@ -36,11 +34,10 @@ app.get('/slides', async (req, res) => {
   }
 });
 
-// POST /slides - cadastra um novo slide
-app.post('/slides', async (req, res) => {
+// POST /slides
+router.post("/", async (req, res) => {
   const { assunto, texto, autor } = req.body;
 
-  // Validação dos campos obrigatórios
   if (
     !assunto || typeof assunto !== "string" || assunto.trim().length === 0 ||
     !texto || typeof texto !== "string" || texto.trim().length === 0
@@ -48,7 +45,6 @@ app.post('/slides', async (req, res) => {
     return res.status(400).json({ error: "Preencha todos os campos!" });
   }
 
-  // Verifica duplicidade de assunto (case-insensitive)
   const temaExiste = await Slide.findOne({
     assunto: { $regex: `^${assunto.trim()}$`, $options: 'i' }
   });
@@ -72,8 +68,4 @@ app.post('/slides', async (req, res) => {
   }
 });
 
-// Porta padrão para Render ou local
-const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => {
-  console.log(`Servidor rodando na porta ${PORT}`);
-});
+module.exports = router;
