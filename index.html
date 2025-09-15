@@ -1,95 +1,53 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <title>Cadastro de Slides Jurídicos</title>
-  <style>
-    body { font-family: Arial, sans-serif; margin: 40px; }
-    h1 { color: #333; }
-    form { margin-bottom: 24px; }
-    label { display: block; margin-top: 10px; }
-    input, textarea { width: 100%; padding: 8px; margin-top: 3px; box-sizing: border-box; }
-    button { margin-top: 10px; padding: 8px 24px; }
-    .slide { background: #f4f4f4; margin-bottom: 18px; padding: 14px; border-radius: 6px; }
-    .erro { color: red; margin-bottom: 10px; }
-    .sucesso { color: green; margin-bottom: 10px; }
-  </style>
+  <meta charset="UTF-8">
+  <title>Cadastro de Slides</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h1>Cadastro de Slides Jurídicos</h1>
+  <h1>Cadastrar novo Slide</h1>
+
   <form id="slideForm">
+    <label for="data">Data:</label>
+    <input type="text" id="data" name="data" required placeholder="dd.mm.aaaa">
+
     <label for="assunto">Assunto:</label>
-    <input type="text" id="assunto" name="assunto" required />
+    <input type="text" id="assunto" name="assunto" required>
 
     <label for="texto">Texto:</label>
-    <textarea id="texto" name="texto" rows="4" required></textarea>
+    <textarea id="texto" name="texto" required></textarea>
 
-    <label for="autor">Autor:</label>
-    <input type="text" id="autor" name="autor" />
-
-    <button type="submit">Cadastrar Slide</button>
-    <div id="msg"></div>
+    <button type="submit">Cadastrar</button>
   </form>
 
-  <h2>Slides cadastrados</h2>
-  <div id="slides"></div>
+  <div id="mensagem"></div>
 
   <script>
-    async function fetchSlides() {
-      const slidesDiv = document.getElementById('slides');
-      slidesDiv.innerHTML = '<em>Carregando...</em>';
-      try {
-        const res = await fetch('/slides');
-        const slides = await res.json();
-        if (Array.isArray(slides) && slides.length > 0) {
-          slidesDiv.innerHTML = slides.map(slide => `
-            <div class="slide">
-              <strong>Assunto:</strong> ${slide.assunto}<br>
-              <strong>Texto:</strong> ${slide.texto}<br>
-              <strong>Autor:</strong> ${slide.autor || 'Usuário Comum'}<br>
-              <small><strong>Data:</strong> ${new Date(slide.data).toLocaleString()}</small>
-            </div>
-          `).join('');
-        } else {
-          slidesDiv.innerHTML = "<em>Nenhum slide cadastrado.</em>";
-        }
-      } catch (err) {
-        slidesDiv.innerHTML = "<span class='erro'>Erro ao carregar slides.</span>";
-      }
-    }
-
-    document.getElementById('slideForm').addEventListener('submit', async function(e) {
+    document.getElementById("slideForm").addEventListener("submit", async (e) => {
       e.preventDefault();
-      const assunto = document.getElementById('assunto').value;
-      const texto = document.getElementById('texto').value;
-      const autor = document.getElementById('autor').value;
-      const msgDiv = document.getElementById('msg');
-      msgDiv.textContent = '';
+
+      const slide = {
+        data: document.getElementById("data").value,
+        assunto: document.getElementById("assunto").value,
+        texto: document.getElementById("texto").value,
+      };
 
       try {
-        const res = await fetch('/slides', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ assunto, texto, autor })
+        const response = await fetch("/slides/add", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(slide),
         });
-        const data = await res.json();
-        if (res.ok) {
-          msgDiv.textContent = data.message;
-          msgDiv.className = 'sucesso';
-          this.reset();
-          fetchSlides();
-        } else {
-          msgDiv.textContent = data.error || 'Erro ao cadastrar!';
-          msgDiv.className = 'erro';
-        }
-      } catch (err) {
-        msgDiv.textContent = 'Erro ao cadastrar!';
-        msgDiv.className = 'erro';
+
+        const result = await response.json();
+        document.getElementById("mensagem").innerText = result.message || "Cadastro realizado!";
+        document.getElementById("slideForm").reset();
+      } catch (error) {
+        document.getElementById("mensagem").innerText = "Erro ao cadastrar slide.";
+        console.error(error);
       }
     });
-
-    // Carrega slides ao abrir a página
-    fetchSlides();
   </script>
 </body>
 </html>
