@@ -1,53 +1,246 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Cadastro de Slides</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h1>Cadastrar novo Slide</h1>
+  <nav class="navbar">
+    <div class="nav-brand">Slides</div>
+    <div id="navDate" class="nav-date" aria-live="polite"></div>
+    <div class="nav-space"></div>
+  </nav>
 
-  <form id="slideForm">
-    <label for="data">Data:</label>
-    <input type="text" id="data" name="data" required placeholder="dd.mm.aaaa">
+  <main class="container">
+    <section class="hero">
+      <h1>Cadastrar novo Slide</h1>
+    </section>
 
-    <label for="assunto">Assunto:</label>
-    <input type="text" id="assunto" name="assunto" required>
+    <aside>
+      <div class="card">
+        <form id="slideForm" autocomplete="off">
+          <label for="data">Data (gravada automaticamente):</label>
+          <input type="text" id="data" name="data" readonly>
 
-    <label for="texto">Texto:</label>
-    <textarea id="texto" name="texto" required></textarea>
+          <label for="assunto">Assunto:</label>
+          <input type="text" id="assunto" name="assunto" required placeholder="Digite o assunto">
 
-    <button type="submit">Cadastrar</button>
-  </form>
+          <label for="texto">Texto:</label>
+          <textarea id="texto" name="texto" rows="6" required placeholder="Digite o texto do slide"></textarea>
 
-  <div id="mensagem"></div>
+          <button id="btnSubmit" type="submit">Cadastrar</button>
+        </form>
 
-  <script>
-    document.getElementById("slideForm").addEventListener("submit", async (e) => {
-      e.preventDefault();
+        <div id="mensagem" role="status" aria-live="polite"></div>
+      </div>
+    </aside>
+  </main>
 
-      const slide = {
-        data: document.getElementById("data").value,
-        assunto: document.getElementById("assunto").value,
-        texto: document.getElementById("texto").value,
-      };
+  <section class="list-section">
+    <h2>Slides Cadastrados</h2>
+    <div id="slidesList" class="slides-list">
+      <p class="muted">Carregando slides...</p>
+    </div>
+  </section>
 
-      try {
-        const response = await fetch("/slides/add", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(slide),
-        });
+  <footer class="site-footer">
+    Desenvolvido por <a href="mailto:hugo.portelinha@gmail.com">Hugo Portelinha Cordeiro</a> | &copy; <span id="anoAtual"></span>
+  </footer>
 
-        const result = await response.json();
-        document.getElementById("mensagem").innerText = result.message || "Cadastro realizado!";
-        document.getElementById("slideForm").reset();
-      } catch (error) {
-        document.getElementById("mensagem").innerText = "Erro ao cadastrar slide.";
-        console.error(error);
-      }
+<script>
+/* ===== utilidades data em pt-BR ===== */
+function dataPorExtenso(dateObj){
+  const meses = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
+  const dia = dateObj.getDate();
+  const mes = meses[dateObj.getMonth()];
+  const ano = dateObj.getFullYear();
+  return `${dia} de ${mes} de ${ano}`;
+}
+
+/* ===== DOM refs ===== */
+const navDate = document.getElementById('navDate');
+const inputData = document.getElementById('data');
+const form = document.getElementById('slideForm');
+const mensagem = document.getElementById('mensagem');
+const slidesList = document.getElementById('slidesList');
+const anoAtualSpan = document.getElementById('anoAtual');
+const btnSubmit = document.getElementById('btnSubmit');
+
+anoAtualSpan.textContent = new Date().getFullYear();
+
+/* Preenche data por extenso (navbar + campo read-only) */
+const hoje = new Date();
+const hojeExtenso = dataPorExtenso(hoje);
+navDate.textContent = hojeExtenso;
+inputData.value = hojeExtenso;
+
+/* tenta descobrir usuário logado (fallback = Usuário Comum) */
+let currentUser = { username: "Usuário Comum", level: 0 };
+async function fetchCurrentUser(){
+  try {
+    const res = await fetch('/auth/me', { credentials: 'same-origin' });
+    if (!res.ok) return; // manter fallback
+    const json = await res.json();
+    if (json && json.username) currentUser = json;
+  } catch(err){
+    // rota /auth/me pode não existir; manter fallback
+    console.log("Não foi possível obter auth/me:", err && err.message ? err.message : err);
+  }
+}
+
+/* Função de render das mensagens (limpa classes anteriores) */
+function showMessage(text, type = 'sucesso'){
+  mensagem.className = ''; // limpa classes
+  void mensagem.offsetWidth; // restart animation (trick)
+  if (type === 'sucesso') mensagem.classList.add('sucesso');
+  else mensagem.classList.add('erro');
+  mensagem.textContent = text;
+}
+
+/* Limpa mensagem */
+function clearMessage(){
+  mensagem.className = '';
+  mensagem.textContent = '';
+}
+
+/* Fetch slides com verificação de content-type para evitar parse de HTML */
+async function fetchSlides(){
+  slidesList.innerHTML = '<p class="muted">Carregando slides...</p>';
+  try {
+    const res = await fetch('/slides');
+    const ct = (res.headers.get('content-type') || '').toLowerCase();
+    if (!res.ok){
+      const text = await res.text();
+      throw new Error(`Erro ${res.status}: ${text}`);
+    }
+    if (!ct.includes('application/json')){
+      const txt = await res.text();
+      throw new Error('Resposta do servidor não é JSON. Resposta: ' + txt.slice(0,300));
+    }
+    const slides = await res.json();
+    renderSlides(slides);
+  } catch(err){
+    slidesList.innerHTML = `<p class="erro">Erro ao carregar slides: ${err.message}</p>`;
+    console.error(err);
+  }
+}
+
+/* Renderiza a lista de slides (caso coleção tenha a estrutura slide:{data,assunto,texto}, autor ou autor/author) */
+function renderSlides(items){
+  if (!Array.isArray(items) || items.length === 0){
+    slidesList.innerHTML = '<p class="muted">Nenhum slide cadastrado ainda.</p>';
+    return;
+  }
+
+  slidesList.innerHTML = '';
+  items.forEach(item => {
+    const assunto = item?.slide?.assunto || item.assunto || "—";
+    const texto = item?.slide?.texto || item.texto || "";
+    const data = item?.slide?.data || item.data || item.dataReg || "—";
+    const autor = item?.autor || item?.author?.username || item.author || "Usuário";
+
+    const div = document.createElement('div');
+    div.className = 'slide-card';
+    div.innerHTML = `
+      <div class="slide-header">
+        <h3 class="slide-title">${escapeHtml(assunto)}</h3>
+        <span class="slide-date">${escapeHtml(data)}</span>
+      </div>
+      <div class="slide-body">${nl2br(escapeHtml(texto))}</div>
+      <div class="slide-footer"><small>Autor: ${escapeHtml(autor)}</small></div>
+    `;
+    slidesList.appendChild(div);
+  });
+}
+
+/* Escape básico para evitar injeção de HTML */
+function escapeHtml(str){
+  if (!str && str !== 0) return '';
+  return String(str)
+    .replaceAll('&','&amp;')
+    .replaceAll('<','&lt;')
+    .replaceAll('>','&gt;')
+    .replaceAll('"','&quot;')
+    .replaceAll("'",'&#39;');
+}
+function nl2br(s){ return (s || '').replace(/\n/g, '<br>'); }
+
+/* Envio do formulário — envia POST para /slides com {data, assunto, texto, autor} */
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  clearMessage();
+
+  const assunto = document.getElementById('assunto').value.trim();
+  const texto = document.getElementById('texto').value.trim();
+  const data = inputData.value;
+
+  if (!assunto || !texto) {
+    showMessage('Preencha assunto e texto antes de enviar.', 'erro');
+    return;
+  }
+
+  btnSubmit.disabled = true;
+  btnSubmit.textContent = 'Enviando...';
+
+  const payload = {
+    data: data,
+    assunto: assunto,
+    texto: texto,
+    autor: currentUser.username || "Usuário Comum"
+  };
+
+  try {
+    const res = await fetch('/slides', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
     });
-  </script>
+
+    // Se resposta não for JSON, tenta ler texto e mostrar
+    const ct = (res.headers.get('content-type') || '').toLowerCase();
+    if (!res.ok) {
+      let errText = `Erro ${res.status}`;
+      if (ct.includes('application/json')) {
+        const errJson = await res.json();
+        errText += ' — ' + (errJson.error || errJson.message || JSON.stringify(errJson));
+      } else {
+        const txt = await res.text();
+        errText += ' — ' + txt.slice(0,300);
+      }
+      throw new Error(errText);
+    }
+
+    // se JSON, parse e mostrar mensagem
+    if (ct.includes('application/json')) {
+      const json = await res.json();
+      const msg = json.message || 'Slide cadastrado com sucesso!';
+      showMessage(msg, 'sucesso');
+    } else {
+      // resposta 200 mas não JSON
+      showMessage('Slide cadastrado (resposta inesperada do servidor).', 'sucesso');
+    }
+
+    form.reset();
+    inputData.value = data; // manter a data auto-preenchida
+    fetchSlides();
+  } catch(err){
+    console.error(err);
+    showMessage('Erro ao cadastrar slide: ' + (err.message || err), 'erro');
+  } finally {
+    btnSubmit.disabled = false;
+    btnSubmit.textContent = 'Cadastrar';
+  }
+});
+
+/* Inicialização */
+(async function init(){
+  await fetchCurrentUser();
+  // já colocamos a data por extenso no campo e nav ao carregar o HTML; 
+  // carregar slides
+  fetchSlides();
+})();
+</script>
 </body>
 </html>
