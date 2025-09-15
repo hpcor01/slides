@@ -6,21 +6,33 @@ const cors = require("cors");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middlewares
+// Middleware
 app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// Servir arquivos estáticos da pasta "public"
-app.use(express.static(path.join(__dirname, "public")));
+// Servir arquivos diretamente da raiz
+app.use(express.static(__dirname));
+
+// Rotas de autenticação
+const authRoutes = require("./auth");
+app.use("/auth", authRoutes);
 
 // Rotas de slides
 const slidesRoutes = require("./slides");
 app.use("/slides", slidesRoutes);
 
-// Rota inicial → index.html (ajuste para procurar no public)
+// Rotas para HTML principais
 app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
+  res.sendFile(path.join(__dirname, "index.html")); // cadastro
+});
+
+app.get("/login", (req, res) => {
+  res.sendFile(path.join(__dirname, "login.html"));
+});
+
+app.get("/admin", (req, res) => {
+  res.sendFile(path.join(__dirname, "admin.html"));
 });
 
 // Teste rápido para saber se o servidor está vivo
