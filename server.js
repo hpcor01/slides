@@ -2,9 +2,16 @@ const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 
+
 const app = express();
 app.use(express.json());
-app.use(cors());
+const corsOptions = {
+  origin: ["https://slides-indol.vercel.app"], // frontend Vercel
+  methods: ["GET", "POST"],
+  allowedHeaders: ["Content-Type"]
+};
+
+app.use(cors(corsOptions));
 
 // Conexão com o MongoDB
 mongoose.connect(
@@ -97,3 +104,4 @@ app.post("/slides", async (req, res) => {
 //
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`🚀 Servidor rodando na porta ${PORT}`));
+
