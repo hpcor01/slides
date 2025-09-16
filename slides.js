@@ -1,67 +1,72 @@
-// slides.js
-const express = require("express");
-const router = express.Router();
-const { MongoClient } = require("mongodb");
+const apiBase = "https://slides-indol.vercel.app"; // ajuste se mudar o domínio
 
-// URL do Mongo Atlas
-const url =
-  process.env.MONGO_URL ||
-  "mongodb+srv://sysdba:LFpxAegi7gMZuHlT@eightcluster.nblda.mongodb.net/?retryWrites=true&w=majority&appName=eightCluster";
+async function cadastrarSlide(event) {
+  event.preventDefault();
 
-const dbName = "dbAvalia";
-let collection;
+  const assunto = document.getElementById("assunto").value;
+  const texto = document.getElementById("texto").value;
 
-// Conexão com o MongoDB
-MongoClient.connect(url)
-  .then((client) => {
-    console.log("Conectado ao MongoDB (slides)!");
-    const db = client.db(dbName);
-    collection = db.collection("coltema");
-  })
-  .catch((err) => console.error("Erro ao conectar ao MongoDB:", err));
-
-// Função para formatar data por extenso em pt-BR
-function getDataExtenso() {
-  const hoje = new Date();
-  return hoje.toLocaleDateString("pt-BR", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
-}
-
-// Rota: listar slides
-router.get("/", async (req, res) => {
   try {
-    const slides = await collection.find().toArray();
-    res.json(slides);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+    const response = await fetch(`${apiBase}/slides`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ assunto, texto })
+    });
 
-// Rota: cadastrar novo slide
-router.post("/", async (req, res) => {
-  try {
-    const { assunto, texto } = req.body;
-
-    if (!assunto || !texto) {
-      return res.status(400).json({ error: "Preencha todos os campos" });
+    if (!response.ok) {
+      const err = await response.json();
+      throw new Error(err.error || "Erro ao cadastrar");
     }
 
-    const novoSlide = {
-      slide: {
-        data: getDataExtenso(), // data automática por extenso
-        assunto,
-        texto,
-      },
-    };
+    document.getElementById("assunto").value = "";
+    document.getElementById("texto").value = "";
+    carregarSlides();
 
-    const result = await collection.insertOne(novoSlide);
-    res.status(201).json(result);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+  } catch (error) {
+    alert("Erro: " + error.message);
   }
-});
+}
 
-module.exports = router;
+let paginaAtual = 1;
+
+async function carregarSlides(pagina = 1) {
+  try {
+    const response = await fetch(`${apiBase}/slides?page=${pagina}&limit=5`);
+    const data = await response.json();
+
+    const lista = document.getElementById("lista-slides");
+    lista.innerHTML = "";
+
+    data.slides.forEach(item => {
+      const slide = item.slide;
+      const card = document.createElement("div");
+      card.className = "card";
+
+      card.innerHTML = `
+        <h3>${slide.assunto}</h3>
+        <p>${slide.texto}</p>
+        <small><b>Data:</b> ${slide.data} | <b>Autor:</b> ${slide.autor}</small>
+      `;
+      lista.appendChild(card);
+    });
+
+    // Paginação
+    const paginacao = document.getElementById("paginacao");
+    paginacao.innerHTML = `
+      <button ${data.page <= 1 ? "disabled" : ""} onclick="mudarPagina(${data.page - 1})">Anterior</button>
+      <span>Página ${data.page} de ${data.totalPages}</span>
+      <button ${data.page >= data.totalPages ? "disabled" : ""} onclick="mudarPagina(${data.page + 1})">Próximo</button>
+    `;
+
+  } catch (error) {
+    console.error("Erro ao carregar slides:", error);
+  }
+}
+
+function mudarPagina(pagina) {
+  paginaAtual = pagina;
+  carregarSlides(paginaAtual);
+}
+
+document.getElementById("form-slide").addEventListener("submit", cadastrarSlide);
+window.onload = () => carregarSlides();

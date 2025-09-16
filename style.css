@@ -1,136 +1,94 @@
-/* Reset & fonte */
-* { box-sizing: border-box; margin: 0; padding: 0; font-family: "Inter", "Segoe UI", Roboto, Arial, sans-serif; }
-:root {
-  --bg: #f4f6f9;
-  --card: #ffffff;
-  --muted: #6c757d;
-  --accent: #2b7cff;
-  --darknav: #222428;
-  --text: #222;
-}
-
-/* Corpo */
 body {
-  background: var(--bg);
-  color: var(--text);
-  min-height: 100vh;
-  padding-top: 68px; /* espaço para navbar fixa */
+  font-family: Arial, sans-serif;
+  background: #f4f6f9;
+  margin: 0;
+  padding: 0;
+  color: #333;
 }
 
-/* Navbar fixa */
-.navbar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 64px;
-  background: var(--darknav);
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 20px;
-  z-index: 100;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.12);
-}
-.nav-brand { font-weight: 700; letter-spacing: 0.3px; }
-.nav-date { font-size: 14px; opacity: 0.95; }
-.nav-space { width: 40px; } /* espaço à direita para balancear a brand */
-
-/* Container principal — layout 2 colunas (hero + form) */
 .container {
-  max-width: 1100px;
-  margin: 0 auto;
-  display: grid;
-  grid-template-columns: 1fr 380px;
-  gap: 24px;
-  align-items: center;
-  padding: 36px 20px;
+  width: 80%;
+  max-width: 900px;
+  margin: 30px auto;
+  padding: 20px;
 }
 
-/* Hero texto grande */
-.hero { text-align: center; display:flex; align-items:center; justify-content:center; height:260px; }
-.hero h1 { font-size: 34px; color: #222; }
-
-/* Card do formulário */
-.card {
-  background: var(--card);
-  border-radius: 10px;
-  padding: 22px;
-  box-shadow: 0 8px 24px rgba(33,37,41,0.06);
-  border: 1px solid rgba(0,0,0,0.04);
-}
-
-/* Form */
-form label { display:block; font-weight:700; margin-bottom:6px; color: #333; font-size: 13px; }
-form input[type="text"], form textarea {
-  width: 100%;
-  padding: 10px 12px;
-  border-radius: 6px;
-  border: 1px solid #d6d9de;
-  font-size: 14px;
-  margin-bottom: 12px;
-  background: #fff;
-}
-form input[readonly] { background: #f6f7f9; color:#333; cursor: default; }
-textarea { min-height: 110px; resize: vertical; }
-
-/* Botão */
-#btnSubmit {
-  display: inline-block;
-  width: 100%;
-  padding: 12px;
-  background: var(--accent);
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 15px;
-  cursor: pointer;
-  transition: background .18s ease;
-}
-#btnSubmit:hover:not(:disabled) { background: #1a5fe6; }
-#btnSubmit:disabled { opacity: 0.6; cursor: default; }
-
-/* Mensagens */
-#mensagem { margin-top: 12px; text-align: center; font-weight: 700; padding: 10px; border-radius: 6px; display:block; min-height: 0; }
-#mensagem.sucesso { color: #155724; background: #d4edda; border: 1px solid #c3e6cb; }
-#mensagem.erro { color: #721c24; background: #f8d7da; border: 1px solid #f5c6cb; }
-
-/* Lista de slides */
-.list-section { max-width: 1100px; margin: 16px auto 80px; padding: 0 20px; }
-.list-section h2 { margin-bottom: 12px; font-size: 20px; color: #222; }
-.slides-list .muted { color: var(--muted); }
-
-/* Cada slide */
-.slide-card {
-  background: white;
-  border-radius: 8px;
-  padding: 14px 16px;
-  margin-bottom: 12px;
-  box-shadow: 0 6px 18px rgba(25, 27, 29, 0.03);
-  border: 1px solid rgba(0,0,0,0.04);
-}
-.slide-header { display:flex; justify-content:space-between; align-items:center; gap: 12px; }
-.slide-title { font-size: 16px; margin:0; color:#111; }
-.slide-date { font-size: 13px; color: var(--muted); }
-.slide-body { margin: 10px 0; color:#333; line-height:1.45; white-space:pre-wrap; }
-.slide-footer { text-align: right; color: var(--muted); font-size: 13px; }
-
-/* Footer */
-.site-footer {
+h1, h2 {
   text-align: center;
-  padding: 18px 8px;
-  color: var(--muted);
-  border-top: 1px solid rgba(0,0,0,0.03);
-  background: transparent;
-  position: relative;
-  bottom: 0;
-  margin-top: 14px;
+  margin-bottom: 20px;
+  color: #222;
 }
 
-/* Responsividade */
-@media (max-width: 900px) {
-  .container { grid-template-columns: 1fr; padding: 20px; gap: 18px; }
-  .hero { height: auto; padding: 18px 0; }
-  .nav-date { font-size: 13px; }
+.formulario {
+  display: flex;
+  flex-direction: column;
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  margin-bottom: 30px;
+}
+
+.formulario label {
+  margin: 10px 0 5px;
+  font-weight: bold;
+}
+
+.formulario input, 
+.formulario textarea {
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 14px;
+  width: 100%;
+}
+
+.formulario button {
+  margin-top: 15px;
+  padding: 12px;
+  border: none;
+  border-radius: 6px;
+  background: #007BFF;
+  color: white;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.formulario button:hover {
+  background: #0056b3;
+}
+
+.card {
+  background: white;
+  padding: 15px;
+  border-radius: 6px;
+  margin-bottom: 15px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.card h3 {
+  margin: 0 0 10px;
+  color: #007BFF;
+}
+
+.paginacao {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 15px;
+  gap: 10px;
+}
+
+.paginacao button {
+  padding: 8px 15px;
+  border: none;
+  background: #007BFF;
+  color: white;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.paginacao button:disabled {
+  background: #ccc;
+  cursor: not-allowed;
 }

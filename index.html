@@ -2,85 +2,28 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Cadastro de Slides</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <div class="container">
     <h1>Cadastro de Slides</h1>
-    <form id="slideForm">
+
+    <form id="form-slide" class="formulario">
       <label for="assunto">Assunto:</label>
-      <input type="text" id="assunto" name="assunto" required>
+      <input type="text" id="assunto" required>
 
       <label for="texto">Texto:</label>
-      <textarea id="texto" name="texto" required></textarea>
+      <textarea id="texto" rows="4" required></textarea>
 
       <button type="submit">Cadastrar</button>
     </form>
 
     <h2>Slides Cadastrados</h2>
-    <div id="slidesList"></div>
+    <div id="lista-slides"></div>
+    <div id="paginacao" class="paginacao"></div>
   </div>
 
-  <script>
-    const API_URL = "https://slides-629o.onrender.com/slides";
-
-    async function carregarSlides() {
-      try {
-        const res = await fetch(API_URL);
-        if (!res.ok) throw new Error("Erro ao carregar slides");
-        const slides = await res.json();
-
-        const slidesList = document.getElementById("slidesList");
-        slidesList.innerHTML = "";
-
-        if (slides.length === 0) {
-          slidesList.innerHTML = "<p>Nenhum slide cadastrado.</p>";
-          return;
-        }
-
-        slides.forEach(slide => {
-          const div = document.createElement("div");
-          div.classList.add("slide-item");
-          div.innerHTML = `
-            <h3>${slide.slide.assunto}</h3>
-            <p>${slide.slide.texto}</p>
-            <small>${slide.slide.data}</small>
-          `;
-          slidesList.appendChild(div);
-        });
-      } catch (err) {
-        console.error(err);
-      }
-    }
-
-    document.getElementById("slideForm").addEventListener("submit", async (e) => {
-      e.preventDefault();
-
-      const assunto = document.getElementById("assunto").value.trim();
-      const texto = document.getElementById("texto").value.trim();
-
-      if (!assunto || !texto) return alert("Preencha todos os campos!");
-
-      try {
-        const res = await fetch(API_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ assunto, texto })
-        });
-
-        if (!res.ok) throw new Error("Erro ao cadastrar slide");
-
-        document.getElementById("slideForm").reset();
-        carregarSlides();
-      } catch (err) {
-        console.error(err);
-        alert("Erro ao cadastrar slide.");
-      }
-    });
-
-    carregarSlides();
-  </script>
+  <script src="slides.js"></script>
 </body>
 </html>

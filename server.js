@@ -1,40 +1,90 @@
-// server.js
 const express = require("express");
-const path = require("path");
+const { MongoClient } = require("mongodb");
 const bodyParser = require("body-parser");
 const cors = require("cors");
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const port = process.env.PORT || 3000;
 
-// Middleware
 app.use(cors());
 app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+app.use(express.static(__dirname));
 
-// Servir arquivos estáticos da pasta "public"
-app.use(express.static(path.join(__dirname, "public")));
+// URL do MongoDB Atlas
+const mongoURL = "mongodb+srv://sysdba:LFpxAegi7gMZuHlT@eightcluster.nblda.mongodb.net/?retryWrites=true&w=majority&appName=eightCluster";
+const dbName = "dbSlides";
+let collection;
 
-// Rotas de autenticação
-const authRoutes = require("./auth");
-app.use("/auth", authRoutes);
+MongoClient.connect(mongoURL)
+  .then(client => {
+    console.log("Conectado ao MongoDB Atlas");
+    const db = client.db(dbName);
+    collection = db.collection("coltema");
+  })
+  .catch(err => console.error("Erro ao conectar ao MongoDB:", err));
 
-// Rota inicial → login.html
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "login.html"));
+// ------------------ ROTAS ------------------
+
+// Cadastrar slide
+app.post("/slides", async (req, res) => {
+  try {
+    const { assunto, texto } = req.body;
+    const dataAtual = new Date().toLocaleDateString("pt-BR");
+    const autor = "user Teste"; // fixo por enquanto
+
+    // Verificar duplicidade por semelhança (regex case-insensitive)
+    const existente = await collection.findOne({
+      $or: [
+        { "slide.assunto": { $regex: assunto, $options: "i" } },
+        { "slide.texto": { $regex: texto, $options: "i" } }
+      ]
+    });
+
+    if (existente) {
+      return res.status(400).json({ error: "Slide semelhante já cadastrado" });
+    }
+
+    // Inserir no Mongo
+    const novoSlide = {
+      slide: { data: dataAtual, assunto, texto, autor }
+    };
+
+    await collection.insertOne(novoSlide);
+    res.status(201).json({ message: "Slide cadastrado com sucesso" });
+
+  } catch (error) {
+    console.error("Erro ao cadastrar slide:", error);
+    res.status(500).json({ error: "Erro interno no servidor" });
+  }
 });
 
-// Rotas de slides
-const slidesRoutes = require("./slides");
-app.use("/slides", slidesRoutes);
-console.log("Rotas de slides carregadas ✅");
+// Listar slides com paginação
+app.get("/slides", async (req, res) => {
+  try {
+    let { page = 1, limit = 5 } = req.query;
+    page = parseInt(page);
+    limit = parseInt(limit);
 
-// Teste rápido para saber se o servidor está vivo
-app.get("/ping", (req, res) => {
-  res.send("Servidor ativo 🚀");
+    const skip = (page - 1) * limit;
+    const total = await collection.countDocuments();
+    const slides = await collection.find({})
+      .skip(skip)
+      .limit(limit)
+      .sort({ "slide.data": -1 })
+      .toArray();
+
+    res.json({
+      page,
+      totalPages: Math.ceil(total / limit),
+      slides
+    });
+
+  } catch (error) {
+    console.error("Erro ao buscar slides:", error);
+    res.status(500).json({ error: "Erro interno no servidor" });
+  }
 });
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`Servidor rodando na porta ${PORT}`);
+app.listen(port, () => {
+  console.log(`Servidor rodando na porta ${port}`);
 });
