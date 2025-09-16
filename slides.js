@@ -1,153 +1,101 @@
-// slides.js - cliente
-const API_BASE = "https://slides-629o.onrender.com"; // <--- ajuste se necessário
-const LIMIT = 5;
+const express = require("express");
+const router = express.Router();
+const { ObjectId } = require("mongodb");
+const client = require("./db"); // conexão Mongo
+const natural = require("natural");
 
-const listaEl = document.getElementById("lista-slides");
-const formEl = document.getElementById("form-slide");
-const pagEl = document.getElementById("paginacao");
-const msgEl = document.getElementById("mensagem"); // crie um elemento para mensagens
-let paginaAtual = 1;
+// Função para calcular similaridade entre dois textos
+function similarity(text1, text2) {
+  const tfidf = new natural.TfIdf();
 
-function showMsg(text, type = "info") {
-  if (!msgEl) return alert(text);
-  msgEl.className = ""; // limpar classes
-  msgEl.textContent = text;
-  if (type === "sucesso") msgEl.classList.add("sucesso");
-  else if (type === "erro") msgEl.classList.add("erro");
-  else msgEl.classList.add("info");
-}
+  tfidf.addDocument(text1);
+  tfidf.addDocument(text2);
 
-function clearMsg() {
-  if (msgEl) { msgEl.textContent = ""; msgEl.className = ""; }
-}
+  const vec1 = [];
+  const vec2 = [];
 
-async function carregarSlides(page = 1) {
-  paginaAtual = page;
-  listaEl.innerHTML = "<p>Carregando...</p>";
-  try {
-    const res = await fetch(`${API_BASE}/slides?page=${page}&limit=${LIMIT}`);
-    const contentType = (res.headers.get("content-type") || "").toLowerCase();
-
-    if (!res.ok) {
-      // tenta ler JSON de erro, senão texto
-      let body = "";
-      if (contentType.includes("application/json")) {
-        const j = await res.json();
-        body = j.error || j.message || JSON.stringify(j);
-      } else {
-        body = await res.text();
-      }
-      throw new Error(`Erro ${res.status} — ${body}`);
-    }
-
-    if (!contentType.includes("application/json")) {
-      const txt = await res.text();
-      throw new Error("Resposta do servidor não é JSON: " + txt.slice(0,300));
-    }
-
-    const data = await res.json();
-    renderSlidesPage(data);
-  } catch (err) {
-    console.error(err);
-    listaEl.innerHTML = `<p class="erro">Erro ao carregar slides: ${err.message}</p>`;
-  }
-}
-
-function renderSlidesPage(data) {
-  // Espera: { page, totalPages, slides }
-  const slides = data.slides || [];
-  if (slides.length === 0) {
-    listaEl.innerHTML = "<p>Nenhum slide cadastrado.</p>";
-  } else {
-    listaEl.innerHTML = "";
-    slides.forEach(item => {
-      const s = item.slide || item;
-      const card = document.createElement("div");
-      card.className = "card slide-card";
-      card.innerHTML = `
-        <h3>${escapeHtml(s.assunto || "—")}</h3>
-        <div class="slide-body">${nl2br(escapeHtml(s.texto || ""))}</div>
-        <div class="slide-meta"><small>${escapeHtml(s.data || "")} • ${escapeHtml(s.autor || "")}</small></div>
-      `;
-      listaEl.appendChild(card);
-    });
-  }
-
-  // paginação
-  const page = data.page || 1;
-  const totalPages = data.totalPages || 1;
-  pagEl.innerHTML = `
-    <button ${page<=1 ? "disabled" : ""} id="prevBtn">Anterior</button>
-    <span>Página ${page} de ${totalPages}</span>
-    <button ${page>=totalPages ? "disabled" : ""} id="nextBtn">Próximo</button>
-  `;
-  const prevBtn = document.getElementById("prevBtn");
-  const nextBtn = document.getElementById("nextBtn");
-  if (prevBtn) prevBtn.onclick = () => carregarSlides(page-1);
-  if (nextBtn) nextBtn.onclick = () => carregarSlides(page+1);
-}
-
-function escapeHtml(str){
-  if (!str && str !== 0) return '';
-  return String(str).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;')
-                    .replaceAll('"','&quot;').replaceAll("'",'&#39;');
-}
-function nl2br(s){ return (s||'').replace(/\n/g,'<br>'); }
-
-/* Submeter novo slide */
-if (formEl) {
-  formEl.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    clearMsg();
-
-    const assunto = (document.getElementById("assunto") || {}).value || "";
-    const texto = (document.getElementById("texto") || {}).value || "";
-
-    if (!assunto.trim() || !texto.trim()) {
-      showMsg("Preencha assunto e texto.", "erro");
-      return;
-    }
-
-    const btn = formEl.querySelector('button[type="submit"]');
-    btn && (btn.disabled = true);
-    btn && (btn.textContent = "Enviando...");
-
-    try {
-      const res = await fetch(`${API_BASE}/slides`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ assunto: assunto.trim(), texto: texto.trim() })
-      });
-
-      const ct = (res.headers.get("content-type")||"").toLowerCase();
-      if (!res.ok) {
-        let body = "";
-        if (ct.includes("application/json")) {
-          const j = await res.json();
-          body = j.error || j.message || JSON.stringify(j);
-        } else {
-          body = await res.text();
-        }
-        throw new Error(body || `Erro ${res.status}`);
-      }
-
-      // resposta ok
-      let json = {};
-      if (ct.includes("application/json")) json = await res.json();
-      showMsg(json.message || "Slide cadastrado com sucesso.", "sucesso");
-      formEl.reset();
-      carregarSlides(1); // recarrega primeira página
-    } catch (err) {
-      console.error(err);
-      showMsg("Erro ao cadastrar slide: " + (err.message || err), "erro");
-    } finally {
-      btn && (btn.disabled = false);
-      btn && (btn.textContent = "Cadastrar");
-    }
+  tfidf.listTerms(0).forEach(item => {
+    vec1.push(item.tfidf);
+    vec2.push(tfidf.tfidf(item.term, 1));
   });
+
+  const dotProduct = vec1.reduce((sum, val, i) => sum + val * vec2[i], 0);
+  const magnitude1 = Math.sqrt(vec1.reduce((sum, val) => sum + val * val, 0));
+  const magnitude2 = Math.sqrt(vec2.reduce((sum, val) => sum + val * val, 0));
+
+  return dotProduct / (magnitude1 * magnitude2 || 1);
 }
 
-/* Inicialização */
-document.addEventListener("DOMContentLoaded", () => {
-  carregarSlides(1);
+// 🔹 Rota GET – listar slides
+router.get("/", async (req, res) => {
+  try {
+    const db = client.db("dbSlides");
+    const slides = await db.collection("colTema").find().toArray();
+    res.json(slides);
+  } catch (err) {
+    console.error("Erro ao buscar slides:", err);
+    res.status(500).json({ error: "Erro ao buscar slides" });
+  }
 });
+
+// 🔹 Rota POST – cadastrar slide
+router.post("/", async (req, res) => {
+  try {
+    const { assunto, texto } = req.body;
+    if (!assunto || !texto) {
+      return res.status(400).json({ error: "Preencha todos os campos!" });
+    }
+
+    const db = client.db("dbSlides");
+    const collection = db.collection("colTema");
+
+    // Buscar todos os slides existentes
+    const existentes = await collection.find().toArray();
+
+    // Verificar duplicidade por similaridade
+    const LIMIAR = 0.75; // pode ajustar (0.7 ~ 0.8 geralmente é bom)
+
+    for (const slide of existentes) {
+      const simAssunto = similarity(assunto, slide.slide.assunto || "");
+      const simTexto = similarity(texto, slide.slide.texto || "");
+
+      if (simAssunto >= LIMIAR || simTexto >= LIMIAR) {
+        return res.status(409).json({ 
+          error: "Slide semelhante já cadastrado.",
+          similar: { assunto: slide.slide.assunto, texto: slide.slide.texto }
+        });
+      }
+    }
+
+    // Inserir novo slide
+    const novoSlide = {
+      slide: {
+        data: new Date().toLocaleDateString("pt-BR"),
+        assunto,
+        texto
+      }
+    };
+
+    await collection.insertOne(novoSlide);
+    res.status(201).json({ message: "Slide cadastrado com sucesso!" });
+
+  } catch (err) {
+    console.error("Erro ao cadastrar slide:", err);
+    res.status(500).json({ error: "Erro ao cadastrar slide" });
+  }
+});
+
+// 🔹 Rota DELETE – remover por ID
+router.delete("/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const db = client.db("dbSlides");
+    await db.collection("colTema").deleteOne({ _id: new ObjectId(id) });
+    res.json({ message: "Slide removido com sucesso!" });
+  } catch (err) {
+    console.error("Erro ao remover slide:", err);
+    res.status(500).json({ error: "Erro ao remover slide" });
+  }
+});
+
+module.exports = router;
