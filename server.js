@@ -1,91 +1,99 @@
 const express = require("express");
-const { MongoClient } = require("mongodb");
-const bodyParser = require("body-parser");
+const mongoose = require("mongoose");
 const cors = require("cors");
 
 const app = express();
-const port = process.env.PORT || 3000;
-
+app.use(express.json());
 app.use(cors());
-app.use(bodyParser.json());
-app.use(express.static(__dirname));
 
-// URL do MongoDB Atlas
-const mongoURL = "mongodb+srv://sysdba:LFpxAegi7gMZuHlT@eightcluster.nblda.mongodb.net/?retryWrites=true&w=majority&appName=eightCluster";
-const dbName = "dbSlides";
-let collection;
+// Conexão com o MongoDB
+mongoose.connect(
+  "mongodb+srv://sysdba:LFpxAegi7gMZuHlT@eightcluster.nblda.mongodb.net/dbSlides?retryWrites=true&w=majority&appName=eightCluster",
+  { useNewUrlParser: true, useUnifiedTopology: true }
+).then(() => {
+  console.log("✅ Conectado ao MongoDB");
+}).catch(err => {
+  console.error("❌ Erro ao conectar no MongoDB:", err);
+});
 
-MongoClient.connect(mongoURL)
-  .then(client => {
-    console.log("Conectado ao MongoDB Atlas");
-    const db = client.db(dbName);
-    collection = db.collection("colTema");
-  })
-  .catch(err => console.error("Erro ao conectar ao MongoDB:", err));
+// Schema do slide
+const slideSchema = new mongoose.Schema({
+  slide: {
+    assunto: String,
+    texto: String,
+    data: String,
+    autor: String
+  }
+}, { collection: "colTema" });
 
-// ------------------ ROTAS ------------------
+const Slide = mongoose.model("Slide", slideSchema);
 
-// Cadastrar slide
+//
+// 📌 Rota GET com paginação
+//
+app.get("/slides", async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;  // página atual
+    const limit = parseInt(req.query.limit) || 5; // qtde por página
+    const skip = (page - 1) * limit;
+
+    const slides = await Slide.find().skip(skip).limit(limit).sort({ "slide.data": -1 });
+    const total = await Slide.countDocuments();
+
+    res.json({
+      total,
+      page,
+      pages: Math.ceil(total / limit),
+      slides
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Erro ao carregar slides" });
+  }
+});
+
+//
+// 📌 Rota POST (cadastrar novo slide)
+//
 app.post("/slides", async (req, res) => {
   try {
     const { assunto, texto } = req.body;
-    const dataAtual = new Date().toLocaleDateString("pt-BR");
-    const autor = "user Teste"; // fixo por enquanto
+    if (!assunto || !texto) {
+      return res.status(400).json({ error: "Assunto e texto são obrigatórios" });
+    }
 
-    // Verificar duplicidade por semelhança (regex case-insensitive)
-    const existente = await collection.findOne({
+    // 🔎 Verificação de duplicidade (assunto OU texto semelhantes)
+    const existente = await Slide.findOne({
       $or: [
-        { "slide.assunto": { $regex: assunto, $options: "i" } },
-        { "slide.texto": { $regex: texto, $options: "i" } }
+        { "slide.assunto": { $regex: new RegExp(assunto, "i") } },
+        { "slide.texto": { $regex: new RegExp(texto, "i") } }
       ]
     });
 
     if (existente) {
-      return res.status(400).json({ error: "Slide semelhante já cadastrado" });
+      return res.status(409).json({ error: "Já existe um slide com assunto ou texto semelhante" });
     }
 
-    // Inserir no Mongo
-    const novoSlide = {
-      slide: { data: dataAtual, assunto, texto, autor }
-    };
-
-    await collection.insertOne(novoSlide);
-    res.status(201).json({ message: "Slide cadastrado com sucesso" });
-
-  } catch (error) {
-    console.error("Erro ao cadastrar slide:", error);
-    res.status(500).json({ error: "Erro interno no servidor" });
-  }
-});
-
-// Listar slides com paginação
-app.get("/slides", async (req, res) => {
-  try {
-    let { page = 1, limit = 5 } = req.query;
-    page = parseInt(page);
-    limit = parseInt(limit);
-
-    const skip = (page - 1) * limit;
-    const total = await collection.countDocuments();
-    const slides = await collection.find({})
-      .skip(skip)
-      .limit(limit)
-      .sort({ "slide.data": -1 })
-      .toArray();
-
-    res.json({
-      page,
-      totalPages: Math.ceil(total / limit),
-      slides
+    // Criar novo slide
+    const novo = new Slide({
+      slide: {
+        assunto,
+        texto,
+        data: new Date().toLocaleDateString("pt-BR"),
+        autor: "user Teste"
+      }
     });
 
-  } catch (error) {
-    console.error("Erro ao buscar slides:", error);
-    res.status(500).json({ error: "Erro interno no servidor" });
+    await novo.save();
+    res.status(201).json({ message: "Slide cadastrado com sucesso", slide: novo });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Erro ao cadastrar slide" });
   }
 });
 
-app.listen(port, () => {
-  console.log(`Servidor rodando na porta ${port}`);
-
-});
+//
+// 📌 Inicializar servidor
+//
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`🚀 Servidor rodando na porta ${PORT}`));
