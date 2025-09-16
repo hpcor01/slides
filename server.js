@@ -19,7 +19,7 @@ MongoClient.connect(mongoURL)
   .then(client => {
     console.log("Conectado ao MongoDB Atlas");
     const db = client.db(dbName);
-    collection = db.collection("coltema");
+    collection = db.collection("colTema");
   })
   .catch(err => console.error("Erro ao conectar ao MongoDB:", err));
 
@@ -87,4 +87,5 @@ app.get("/slides", async (req, res) => {
 
 app.listen(port, () => {
   console.log(`Servidor rodando na porta ${port}`);
+
 });
