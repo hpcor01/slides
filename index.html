@@ -6,24 +6,34 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <!-- Navbar -->
+  <nav class="navbar">
+    <span id="navbar-date"></span>
+  </nav>
+
   <div class="container">
     <h1>Cadastro de Slides</h1>
 
-    <form id="form-slide" class="formulario">
-      <label for="assunto">Assunto:</label>
-      <input type="text" id="assunto" required>
-
-      <label for="texto">Texto:</label>
-      <textarea id="texto" rows="4" required></textarea>
-
+    <!-- Form -->
+    <form id="slideForm">
+      <input type="text" id="assunto" placeholder="Assunto" required>
+      <textarea id="texto" placeholder="Texto" required></textarea>
       <button type="submit">Cadastrar</button>
     </form>
 
     <h2>Slides Cadastrados</h2>
-    <div id="lista-slides"></div>
-    <div id="paginacao" class="paginacao"></div>
+    <div id="slidesList"></div>
   </div>
 
-  <script src="slides.js"></script>
+  <script>
+    // Atualizar data na navbar
+    document.getElementById("navbar-date").textContent =
+      new Date().toLocaleDateString("pt-BR", {
+        day: "2-digit",
+        month: "long",
+        year: "numeric"
+      });
+  </script>
+  <script src="slides-client.js"></script>
 </body>
 </html>

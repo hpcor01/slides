@@ -2,106 +2,82 @@ const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 
-
 const app = express();
 app.use(express.json());
-const corsOptions = {
-  origin: ["https://slides-indol.vercel.app"], // frontend Vercel
-  methods: ["GET", "POST"],
-  allowedHeaders: ["Content-Type"]
-};
+app.use(cors());
 
-app.use(cors(corsOptions));
-
-// Conexão com o MongoDB
+// 🔗 Conexão com o MongoDB Atlas
 mongoose.connect(
-  "mongodb+srv://sysdba:LFpxAegi7gMZuHlT@eightcluster.nblda.mongodb.net/dbSlides?retryWrites=true&w=majority&appName=eightCluster",
-  { useNewUrlParser: true, useUnifiedTopology: true }
-).then(() => {
-  console.log("✅ Conectado ao MongoDB");
-}).catch(err => {
-  console.error("❌ Erro ao conectar no MongoDB:", err);
-});
+  "mongodb+srv://sysdba:LFpxAegi7gMZuHlT@eightcluster.nblda.mongodb.net/dbSlides?retryWrites=true&w=majority&appName=eightCluster"
+).then(() => console.log("✅ Conectado ao MongoDB"))
+ .catch(err => console.error("❌ Erro MongoDB:", err));
 
-// Schema do slide
-const slideSchema = new mongoose.Schema({
+// 📌 Schema
+const SlideSchema = new mongoose.Schema({
   slide: {
     assunto: String,
     texto: String,
-    data: String,
-    autor: String
-  }
-}, { collection: "colTema" });
+    data: String
+  },
+  autor: { type: String, default: "user Teste" }
+});
 
-const Slide = mongoose.model("Slide", slideSchema);
+// Forçar collection = colTema
+const Slide = mongoose.model("colTema", SlideSchema, "colTema");
 
-//
-// 📌 Rota GET com paginação
-//
+// 📌 Listar slides
 app.get("/slides", async (req, res) => {
   try {
-    const page = parseInt(req.query.page) || 1;  // página atual
-    const limit = parseInt(req.query.limit) || 5; // qtde por página
-    const skip = (page - 1) * limit;
-
-    const slides = await Slide.find().skip(skip).limit(limit).sort({ "slide.data": -1 });
-    const total = await Slide.countDocuments();
-
-    res.json({
-      total,
-      page,
-      pages: Math.ceil(total / limit),
-      slides
-    });
+    const slides = await Slide.find().sort({ _id: -1 });
+    res.json(slides);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Erro ao carregar slides" });
+    res.status(500).json({ error: err.message });
   }
 });
 
-//
-// 📌 Rota POST (cadastrar novo slide)
-//
+// 📌 Cadastrar slide (evita duplicados semelhantes)
 app.post("/slides", async (req, res) => {
   try {
     const { assunto, texto } = req.body;
-    if (!assunto || !texto) {
-      return res.status(400).json({ error: "Assunto e texto são obrigatórios" });
-    }
 
-    // 🔎 Verificação de duplicidade (assunto OU texto semelhantes)
-    const existente = await Slide.findOne({
+    // Normalizar textos para comparar
+    const normalize = str =>
+      str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+    const existing = await Slide.findOne({
       $or: [
-        { "slide.assunto": { $regex: new RegExp(assunto, "i") } },
-        { "slide.texto": { $regex: new RegExp(texto, "i") } }
+        { "slide.assunto": new RegExp(normalize(assunto), "i") },
+        { "slide.texto": new RegExp(normalize(texto), "i") }
       ]
     });
 
-    if (existente) {
-      return res.status(409).json({ error: "Já existe um slide com assunto ou texto semelhante" });
+    if (existing) {
+      return res.status(400).json({ error: "Slide semelhante já cadastrado!" });
     }
 
-    // Criar novo slide
     const novo = new Slide({
       slide: {
         assunto,
         texto,
-        data: new Date().toLocaleDateString("pt-BR"),
-        autor: "user Teste"
-      }
+        data: new Date().toLocaleDateString("pt-BR", {
+          day: "2-digit",
+          month: "long",
+          year: "numeric"
+        })
+      },
+      autor: "user Teste"
     });
 
     await novo.save();
-    res.status(201).json({ message: "Slide cadastrado com sucesso", slide: novo });
+    res.json(novo);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Erro ao cadastrar slide" });
+    res.status(500).json({ error: err.message });
   }
 });
 
-//
-// 📌 Inicializar servidor
-//
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🚀 Servidor rodando na porta ${PORT}`));
+// 📌 Teste servidor
+app.get("/ping", (req, res) => res.send("Servidor ativo 🚀"));
 
+// Start
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));
