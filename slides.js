@@ -1,62 +1,59 @@
 const express = require("express");
-const { MongoClient } = require("mongodb");
-const stringSimilarity = require("string-similarity");
-
 const router = express.Router();
+const stringSimilarity = require("string-similarity");
+const Slide = require("./models/Slide"); // modelo mongoose
 
-// Função para verificar se dois textos são parecidos
-function textosParecidos(a, b) {
-  if (!a || !b) return false;
-  const similaridade = stringSimilarity.compareTwoStrings(
-    a.toLowerCase(),
-    b.toLowerCase()
-  );
-  return similaridade > 0.5; // ajuste do limiar (0.5 = 50%)
-}
+// Listar slides com paginação
+router.get("/", async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = 5;
+    const skip = (page - 1) * limit;
 
-// Rota para salvar slide
-router.post("/slides", async (req, res) => {
+    const slides = await Slide.find().skip(skip).limit(limit).sort({ _id: -1 });
+    const total = await Slide.countDocuments();
+
+    res.json({
+      slides,
+      totalPages: Math.ceil(total / limit),
+      currentPage: page,
+    });
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao buscar slides" });
+  }
+});
+
+// Cadastrar slide
+router.post("/", async (req, res) => {
   try {
     const { assunto, texto } = req.body;
+
     if (!assunto || !texto) {
-      return res.status(400).json({ error: "Assunto e texto são obrigatórios" });
+      return res.status(400).json({ error: "Preencha todos os campos" });
     }
 
-    const client = new MongoClient(process.env.MONGO_URL);
-    await client.connect();
-    const db = client.db("dbSlides");
-    const col = db.collection("colTema");
+    const existentes = await Slide.find();
+    const assuntos = existentes.map(s => s.slide.assunto);
+    const textos = existentes.map(s => s.slide.texto);
 
-    // Buscar todos os slides já cadastrados
-    const existentes = await col.find().toArray();
+    const simAssunto = assuntos.length ? stringSimilarity.findBestMatch(assunto, assuntos).bestMatch.rating : 0;
+    const simTexto = textos.length ? stringSimilarity.findBestMatch(texto, textos).bestMatch.rating : 0;
 
-    // Verificar se algum é parecido
-    const duplicado = existentes.find((doc) => {
-      return (
-        textosParecidos(doc.slide.assunto, assunto) ||
-        textosParecidos(doc.slide.texto, texto)
-      );
-    });
-
-    if (duplicado) {
-      await client.close();
-      return res.status(409).json({ error: "Slide semelhante já cadastrado!" });
+    if (simAssunto > 0.7 || simTexto > 0.7) {
+      return res.status(400).json({ error: "Slide semelhante já existe." });
     }
 
-    // Inserir se não tiver duplicado
-    await col.insertOne({
-      slide: {
-        assunto,
-        texto,
-        data: new Date().toISOString(),
-      },
+    const hoje = new Date();
+    const dataFormatada = hoje.toLocaleDateString("pt-BR", { day: "numeric", month: "long", year: "numeric" });
+
+    const novoSlide = new Slide({
+      slide: { assunto, texto, data: dataFormatada, autor: "user Teste" },
     });
 
-    await client.close();
-    res.status(201).json({ message: "Slide cadastrado com sucesso!" });
+    await novoSlide.save();
+    res.status(201).json(novoSlide);
   } catch (err) {
-    console.error("Erro ao cadastrar slide:", err);
-    res.status(500).json({ error: "Erro no servidor" });
+    res.status(500).json({ error: "Erro ao salvar slide" });
   }
 });
 
