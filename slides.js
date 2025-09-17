@@ -1,72 +1,63 @@
-const apiBase = "https://slides-indol.vercel.app"; // ajuste se mudar o domínio
+const express = require("express");
+const { MongoClient } = require("mongodb");
+const stringSimilarity = require("string-similarity");
 
-async function cadastrarSlide(event) {
-  event.preventDefault();
+const router = express.Router();
 
-  const assunto = document.getElementById("assunto").value;
-  const texto = document.getElementById("texto").value;
+// Função para verificar se dois textos são parecidos
+function textosParecidos(a, b) {
+  if (!a || !b) return false;
+  const similaridade = stringSimilarity.compareTwoStrings(
+    a.toLowerCase(),
+    b.toLowerCase()
+  );
+  return similaridade > 0.5; // ajuste do limiar (0.5 = 50%)
+}
 
+// Rota para salvar slide
+router.post("/slides", async (req, res) => {
   try {
-    const response = await fetch(`${apiBase}/slides`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ assunto, texto })
-    });
-
-    if (!response.ok) {
-      const err = await response.json();
-      throw new Error(err.error || "Erro ao cadastrar");
+    const { assunto, texto } = req.body;
+    if (!assunto || !texto) {
+      return res.status(400).json({ error: "Assunto e texto são obrigatórios" });
     }
 
-    document.getElementById("assunto").value = "";
-    document.getElementById("texto").value = "";
-    carregarSlides();
+    const client = new MongoClient(process.env.MONGO_URL);
+    await client.connect();
+    const db = client.db("dbSlides");
+    const col = db.collection("colTema");
 
-  } catch (error) {
-    alert("Erro: " + error.message);
-  }
-}
+    // Buscar todos os slides já cadastrados
+    const existentes = await col.find().toArray();
 
-let paginaAtual = 1;
-
-async function carregarSlides(pagina = 1) {
-  try {
-    const response = await fetch(`${apiBase}/slides?page=${pagina}&limit=5`);
-    const data = await response.json();
-
-    const lista = document.getElementById("lista-slides");
-    lista.innerHTML = "";
-
-    data.slides.forEach(item => {
-      const slide = item.slide;
-      const card = document.createElement("div");
-      card.className = "card";
-
-      card.innerHTML = `
-        <h3>${slide.assunto}</h3>
-        <p>${slide.texto}</p>
-        <small><b>Data:</b> ${slide.data} | <b>Autor:</b> ${slide.autor}</small>
-      `;
-      lista.appendChild(card);
+    // Verificar se algum é parecido
+    const duplicado = existentes.find((doc) => {
+      return (
+        textosParecidos(doc.slide.assunto, assunto) ||
+        textosParecidos(doc.slide.texto, texto)
+      );
     });
 
-    // Paginação
-    const paginacao = document.getElementById("paginacao");
-    paginacao.innerHTML = `
-      <button ${data.page <= 1 ? "disabled" : ""} onclick="mudarPagina(${data.page - 1})">Anterior</button>
-      <span>Página ${data.page} de ${data.totalPages}</span>
-      <button ${data.page >= data.totalPages ? "disabled" : ""} onclick="mudarPagina(${data.page + 1})">Próximo</button>
-    `;
+    if (duplicado) {
+      await client.close();
+      return res.status(409).json({ error: "Slide semelhante já cadastrado!" });
+    }
 
-  } catch (error) {
-    console.error("Erro ao carregar slides:", error);
+    // Inserir se não tiver duplicado
+    await col.insertOne({
+      slide: {
+        assunto,
+        texto,
+        data: new Date().toISOString(),
+      },
+    });
+
+    await client.close();
+    res.status(201).json({ message: "Slide cadastrado com sucesso!" });
+  } catch (err) {
+    console.error("Erro ao cadastrar slide:", err);
+    res.status(500).json({ error: "Erro no servidor" });
   }
-}
+});
 
-function mudarPagina(pagina) {
-  paginaAtual = pagina;
-  carregarSlides(paginaAtual);
-}
-
-document.getElementById("form-slide").addEventListener("submit", cadastrarSlide);
-window.onload = () => carregarSlides();
+module.exports = router;
