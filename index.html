@@ -2,38 +2,49 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>Cadastro de Slides</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistema de Slides</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <!-- Navbar -->
   <nav class="navbar">
-    <span id="navbar-date"></span>
+    <div class="container">
+      <h1>Sistema de Slides</h1>
+      <span id="dataAtual"></span>
+    </div>
   </nav>
 
-  <div class="container">
-    <h1>Cadastro de Slides</h1>
+  <main class="container">
+    <!-- Formulário -->
+    <section class="form-section">
+      <h2>Cadastrar Novo Slide</h2>
+      <form id="slideForm">
+        <label for="assunto">Assunto:</label>
+        <input type="text" id="assunto" name="assunto" required>
 
-    <!-- Form -->
-    <form id="slideForm">
-      <input type="text" id="assunto" placeholder="Assunto" required>
-      <textarea id="texto" placeholder="Texto" required></textarea>
-      <button type="submit">Cadastrar</button>
-    </form>
+        <label for="texto">Texto:</label>
+        <textarea id="texto" name="texto" rows="5" required></textarea>
 
-    <h2>Slides Cadastrados</h2>
-    <div id="slidesList"></div>
-  </div>
+        <button type="submit">Cadastrar</button>
+      </form>
+    </section>
 
-  <script>
-    // Atualizar data na navbar
-    document.getElementById("navbar-date").textContent =
-      new Date().toLocaleDateString("pt-BR", {
-        day: "2-digit",
-        month: "long",
-        year: "numeric"
-      });
-  </script>
+    <!-- Lista de slides -->
+    <section class="list-section">
+      <h2>Slides Cadastrados</h2>
+      <div id="slidesList" class="slides-list"></div>
+    </section>
+  </main>
+
+  <!-- Scripts -->
   <script src="slides-client.js"></script>
+  <script>
+    // Exibir data atual por extenso na navbar
+    const data = new Date();
+    const opcoes = { day: 'numeric', month: 'long', year: 'numeric' };
+    document.getElementById("dataAtual").textContent =
+      data.toLocaleDateString("pt-BR", opcoes);
+  </script>
 </body>
 </html>
