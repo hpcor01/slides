@@ -1,62 +1,71 @@
-const express = require("express");
-const router = express.Router();
-const mongoose = require("mongoose");
+// slides.js
 
-// Definição do schema da coleção colTema
-const SlideSchema = new mongoose.Schema({
-  slide: {
-    data: String,
-    assunto: String,
-    texto: String,
-    autor: String
-  }
-}, { collection: "colTema" });
+// URL base da API hospedada no Render
+const API_URL = "https://seu-projeto.onrender.com"; // troque pelo domínio real do Render
 
-const Slide = mongoose.model("Slide", SlideSchema);
-
-// GET - listar slides
-router.get("/", async (req, res) => {
+// Função para carregar slides
+async function carregarSlides() {
   try {
-    const slides = await Slide.find();
-    res.json(slides);
-  } catch (err) {
-    res.status(500).json({ error: "Erro ao buscar slides" });
-  }
-});
+    const response = await fetch(`${API_URL}/slides`);
+    const slides = await response.json();
 
-// POST - cadastrar slide com verificação de duplicados
-router.post("/", async (req, res) => {
-  try {
-    const { assunto, texto, autor } = req.body;
+    const container = document.getElementById("slidesContainer");
+    container.innerHTML = "";
 
-    // normaliza textos
-    const assuntoNorm = assunto.trim().toLowerCase();
-    const textoNorm = texto.trim().toLowerCase();
-
-    const existe = await Slide.findOne({
-      "slide.assunto": { $regex: new RegExp(`^${assuntoNorm}$`, "i") },
-      "slide.texto": { $regex: new RegExp(`^${textoNorm}$`, "i") }
-    });
-
-    if (existe) {
-      return res.status(400).json({ error: "Slide já cadastrado" });
+    if (slides.length === 0) {
+      container.innerHTML = "<p>Nenhum slide encontrado.</p>";
+      return;
     }
 
-    const novoSlide = new Slide({
-      slide: {
-        data: new Date().toISOString().split("T")[0],
-        assunto,
-        texto,
-        autor: autor || "Usuário Comum"
-      }
+    slides.forEach((s) => {
+      const card = document.createElement("div");
+      card.classList.add("slide-card");
+
+      card.innerHTML = `
+        <h3>${s.slide.assunto}</h3>
+        <p>${s.slide.texto}</p>
+        <small><b>Data:</b> ${s.slide.data} | <b>Autor:</b> ${s.slide.autor}</small>
+      `;
+
+      container.appendChild(card);
+    });
+  } catch (err) {
+    console.error("Erro ao carregar slides:", err);
+    alert("Erro ao carregar slides!");
+  }
+}
+
+// Função para adicionar novo slide
+async function adicionarSlide(event) {
+  event.preventDefault();
+
+  const assunto = document.getElementById("assunto").value;
+  const texto = document.getElementById("texto").value;
+
+  if (!assunto || !texto) {
+    alert("Preencha todos os campos!");
+    return;
+  }
+
+  try {
+    const response = await fetch(`${API_URL}/slides`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ assunto, texto }),
     });
 
-    await novoSlide.save();
-    res.json(novoSlide);
+    if (response.ok) {
+      alert("Slide adicionado com sucesso!");
+      document.getElementById("slideForm").reset();
+      carregarSlides();
+    } else {
+      alert("Erro ao adicionar slide!");
+    }
   } catch (err) {
-    console.error("Erro ao salvar slide:", err);
-    res.status(500).json({ error: "Erro ao salvar slide" });
+    console.error("Erro ao adicionar slide:", err);
+    alert("Erro ao adicionar slide!");
   }
-});
+}
 
-module.exports = router;
+// Carregar slides ao abrir a página
+window.onload = carregarSlides;
