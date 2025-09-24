@@ -10,7 +10,11 @@ const PORT = process.env.PORT || 10000;
 app.use(cors());
 app.use(express.json());
 
-// Modelo Slide
+// 🔑 Rotas de autenticação
+const authRoutes = require("./auth");
+app.use("/auth", authRoutes);
+
+// ================== MODELO SLIDE ==================
 const slideSchema = new mongoose.Schema({
   slide: {
     data: String,
@@ -22,7 +26,7 @@ const slideSchema = new mongoose.Schema({
 
 const Slide = mongoose.model("colTema", slideSchema, "colTema");
 
-// Rotas
+// ================== ROTAS SLIDES ==================
 app.get("/", (req, res) => {
   res.send("API de Slides funcionando 🚀");
 });
@@ -43,7 +47,7 @@ app.post("/slides", async (req, res) => {
 
     const novoSlide = new Slide({
       slide: {
-        data: new Date().toISOString().split("T")[0], // data atual yyyy-mm-dd
+        data: new Date().toISOString().split("T")[0],
         assunto,
         texto,
         autor: "Usuário Comum"
@@ -58,7 +62,7 @@ app.post("/slides", async (req, res) => {
   }
 });
 
-// Conexão MongoDB
+// ================== CONEXÃO MONGODB ==================
 const startServer = async () => {
   try {
     const mongoURI =
