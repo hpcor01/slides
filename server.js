@@ -8,7 +8,7 @@ const PORT = process.env.PORT || 10000;
 
 // Middleware
 const corsOptions = {
-  origin: "*", // 🔓 libera para qualquer origem (pode restringir depois se quiser)
+  origin: "https://slides-indol.vercel.app", // 🚀 só permite sua Vercel
   methods: ["GET", "POST"],
   allowedHeaders: ["Content-Type"]
 };
@@ -94,3 +94,4 @@ const startServer = async () => {
 };
 
 startServer();
+
