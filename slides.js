@@ -1,37 +1,50 @@
-const express = require("express");
-const router = express.Router();
-const mongoose = require("mongoose");
+const apiUrl = "https://slides.onrender.com/slides"; // ajuste se usar local: http://localhost:10000/slides
 
-// Modelo do slide
-const slideSchema = new mongoose.Schema({
-  slide: {
-    data: String,
-    assunto: String,
-    texto: String,
-  },
-});
+// Formulário de cadastro
+document.getElementById("slideForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
 
-const Slide = mongoose.model("Slide", slideSchema, "coltema");
+  const assunto = document.getElementById("assunto").value;
+  const texto = document.getElementById("texto").value;
 
-// GET - listar todos os slides
-router.get("/", async (req, res) => {
   try {
-    const slides = await Slide.find();
-    res.json(slides);
+    const res = await fetch(apiUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ assunto, texto })
+    });
+
+    if (res.ok) {
+      document.getElementById("assunto").value = "";
+      document.getElementById("texto").value = "";
+      carregarSlides();
+    } else {
+      alert("Erro ao cadastrar slide.");
+    }
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("Erro na requisição:", err);
   }
 });
 
-// POST - adicionar slide
-router.post("/", async (req, res) => {
+// Carregar slides já cadastrados
+async function carregarSlides() {
   try {
-    const novoSlide = new Slide(req.body);
-    await novoSlide.save();
-    res.status(201).json(novoSlide);
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
-});
+    const res = await fetch(apiUrl);
+    const slides = await res.json();
 
-module.exports = router;
+    const slideList = document.getElementById("slideList");
+    slideList.innerHTML = "";
+
+    slides.forEach((s) => {
+      const li = document.createElement("li");
+      li.innerHTML = `<strong>${s.slide.assunto}</strong> - ${s.slide.texto} <br>
+        <small>${s.slide.data} | ${s.slide.autor}</small>`;
+      slideList.appendChild(li);
+    });
+  } catch (err) {
+    console.error("Erro ao carregar slides:", err);
+  }
+}
+
+// Carregar ao abrir
+carregarSlides();

@@ -1,85 +1,25 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
   <meta charset="UTF-8">
-  <title>Gerenciador de Slides</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Slides</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h1>📑 Gerenciador de Slides</h1>
+  <div class="container">
+    <h1>Cadastro de Slides</h1>
 
-  <!-- Formulário -->
-  <form id="formSlide">
-    <input type="text" id="assunto" placeholder="Assunto" required>
-    <textarea id="texto" placeholder="Texto do slide" required></textarea>
-    <button type="submit">Adicionar</button>
-  </form>
+    <form id="slideForm">
+      <input type="text" id="assunto" placeholder="Assunto" required>
+      <textarea id="texto" placeholder="Texto do slide" required></textarea>
+      <button type="submit">Cadastrar</button>
+    </form>
 
-  <!-- Lista de slides -->
-  <h2>Slides já cadastrados</h2>
-  <div id="listaSlides"></div>
+    <h2>Slides Cadastrados</h2>
+    <ul id="slideList"></ul>
+  </div>
 
-  <script>
-    const API_URL = "http://localhost:5000/slides"; // ajuste depois para o Render
-
-    // Carregar slides
-    async function carregarSlides() {
-      try {
-        const res = await fetch(API_URL);
-        const slides = await res.json();
-
-        const lista = document.getElementById("listaSlides");
-        lista.innerHTML = "";
-
-        if (slides.length === 0) {
-          lista.innerHTML = "<p>Nenhum slide cadastrado ainda.</p>";
-          return;
-        }
-
-        slides.forEach(s => {
-          const div = document.createElement("div");
-          div.className = "slide";
-          div.innerHTML = `
-            <h3>${s.slide.assunto}</h3>
-            <p>${s.slide.texto}</p>
-            <div class="data">Data: ${s.slide.data || "—"}</div>
-            <div class="autor">Autor: ${s.slide.autor || "—"}</div>
-          `;
-          lista.appendChild(div);
-        });
-      } catch (err) {
-        console.error("Erro ao carregar slides:", err);
-      }
-    }
-
-    // Adicionar slide
-    document.getElementById("formSlide").addEventListener("submit", async e => {
-      e.preventDefault();
-
-      const assunto = document.getElementById("assunto").value;
-      const texto = document.getElementById("texto").value;
-
-      const novoSlide = {
-        assunto,
-        texto
-      };
-
-      try {
-        await fetch(API_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(novoSlide)
-        });
-
-        document.getElementById("formSlide").reset();
-        carregarSlides();
-      } catch (err) {
-        console.error("Erro ao adicionar slide:", err);
-      }
-    });
-
-    // Carregar na inicialização
-    carregarSlides();
-  </script>
+  <script src="slides.js"></script>
 </body>
 </html>
