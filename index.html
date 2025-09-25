@@ -2,49 +2,112 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sistema de Slides</title>
-  <link rel="stylesheet" href="style.css">
+  <title>Gerenciador de Slides</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    h1 {
+      text-align: center;
+    }
+    form {
+      margin-bottom: 20px;
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+    }
+    input, textarea, button {
+      padding: 8px;
+      font-size: 14px;
+    }
+    textarea {
+      width: 250px;
+      height: 80px;
+    }
+    .slide {
+      border: 1px solid #ccc;
+      padding: 10px;
+      margin-bottom: 10px;
+      border-radius: 5px;
+    }
+    .data {
+      font-size: 12px;
+      color: #666;
+    }
+  </style>
 </head>
 <body>
-  <!-- Navbar -->
-  <nav class="navbar">
-    <div class="container">
-      <h1>Sistema de Slides</h1>
-      <span id="dataAtual"></span>
-    </div>
-  </nav>
+  <h1>📑 Gerenciador de Slides</h1>
 
-  <main class="container">
-    <!-- Formulário -->
-    <section class="form-section">
-      <h2>Cadastrar Novo Slide</h2>
-      <form id="slideForm">
-        <label for="assunto">Assunto:</label>
-        <input type="text" id="assunto" name="assunto" required>
+  <!-- Formulário -->
+  <form id="formSlide">
+    <input type="text" id="assunto" placeholder="Assunto" required>
+    <textarea id="texto" placeholder="Texto do slide" required></textarea>
+    <button type="submit">Adicionar</button>
+  </form>
 
-        <label for="texto">Texto:</label>
-        <textarea id="texto" name="texto" rows="5" required></textarea>
+  <!-- Lista de slides -->
+  <div id="listaSlides"></div>
 
-        <button type="submit">Cadastrar</button>
-      </form>
-    </section>
-
-    <!-- Lista de slides -->
-    <section class="list-section">
-      <h2>Slides Cadastrados</h2>
-      <div id="slidesList" class="slides-list"></div>
-    </section>
-  </main>
-
-  <!-- Scripts -->
-  <script src="slides-client.js"></script>
   <script>
-    // Exibir data atual por extenso na navbar
-    const data = new Date();
-    const opcoes = { day: 'numeric', month: 'long', year: 'numeric' };
-    document.getElementById("dataAtual").textContent =
-      data.toLocaleDateString("pt-BR", opcoes);
+    const API_URL = "http://localhost:5000/slides"; // troque pelo endereço no Render
+
+    // Carregar slides
+    async function carregarSlides() {
+      try {
+        const res = await fetch(API_URL);
+        const slides = await res.json();
+
+        const lista = document.getElementById("listaSlides");
+        lista.innerHTML = "";
+
+        slides.forEach(s => {
+          const div = document.createElement("div");
+          div.className = "slide";
+          div.innerHTML = `
+            <h3>${s.slide.assunto}</h3>
+            <p>${s.slide.texto}</p>
+            <div class="data">Data: ${s.slide.data || "—"}</div>
+          `;
+          lista.appendChild(div);
+        });
+      } catch (err) {
+        console.error("Erro ao carregar slides:", err);
+      }
+    }
+
+    // Adicionar slide
+    document.getElementById("formSlide").addEventListener("submit", async e => {
+      e.preventDefault();
+
+      const assunto = document.getElementById("assunto").value;
+      const texto = document.getElementById("texto").value;
+
+      const novoSlide = {
+        slide: {
+          data: new Date().toISOString().split("T")[0],
+          assunto,
+          texto
+        }
+      };
+
+      try {
+        await fetch(API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(novoSlide)
+        });
+
+        document.getElementById("formSlide").reset();
+        carregarSlides();
+      } catch (err) {
+        console.error("Erro ao adicionar slide:", err);
+      }
+    });
+
+    // Carregar na inicialização
+    carregarSlides();
   </script>
 </body>
 </html>
