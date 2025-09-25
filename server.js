@@ -7,7 +7,14 @@ const app = express();
 const PORT = process.env.PORT || 10000;
 
 // Middleware
-app.use(cors());
+const corsOptions = {
+  origin: "*", // 🔓 libera para qualquer origem (pode restringir depois se quiser)
+  methods: ["GET", "POST"],
+  allowedHeaders: ["Content-Type"]
+};
+
+app.use(cors(corsOptions));
+
 app.use(express.json());
 
 // Schema Slide
