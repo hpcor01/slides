@@ -8,13 +8,12 @@ const PORT = process.env.PORT || 10000;
 
 // Middleware
 const corsOptions = {
-  origin: "https://slides-indol.vercel.app", // 🚀 só permite sua Vercel
+  origin: "*", // 🔓 libera para qualquer origem (pode restringir depois se quiser)
   methods: ["GET", "POST"],
   allowedHeaders: ["Content-Type"]
 };
 
 app.use(cors(corsOptions));
-
 app.use(express.json());
 
 // Schema Slide
@@ -94,4 +93,5 @@ const startServer = async () => {
 };
 
 startServer();
+
 
