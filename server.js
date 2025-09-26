@@ -6,13 +6,13 @@ require("dotenv").config();
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-// CORS ajustado para liberar apenas seu frontend Vercel
-const corsOptions = {
-  origin: ["https://slides-indol.vercel.app"],
-  methods: ["GET", "POST"],
-  allowedHeaders: ["Content-Type"]
-};
-app.use(cors(corsOptions)); // <--- ANTES das rotas
+// CORS totalmente liberado e headers manuais
+app.use(cors({ origin: "*" }));
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+  next();
+});
 
 app.use(express.json());
 
@@ -26,15 +26,12 @@ const slideSchema = new mongoose.Schema({
   }
 });
 
-// Conecta ao Mongo Atlas e usa dbSlides, collection colTema
 const Slide = mongoose.model("colTema", slideSchema, "colTema");
 
-// Rotas
 app.get("/", (req, res) => {
   res.send("API de Slides funcionando 🚀");
 });
 
-// Listar todos os slides
 app.get("/slides", async (req, res) => {
   try {
     const slides = await Slide.find();
@@ -45,14 +42,12 @@ app.get("/slides", async (req, res) => {
   }
 });
 
-// Criar novo slide
 app.post("/slides", async (req, res) => {
   try {
     const { assunto, texto, autor, data } = req.body;
     if (!assunto || !texto || !autor || !data) {
       return res.status(400).json({ error: "Todos os campos são obrigatórios." });
     }
-    // Buscar slides existentes para evitar duplicatas por similaridade
     const slides = await Slide.find();
     const isSimilar = slides.some(s =>
       (s.slide.assunto && s.slide.assunto.toLowerCase() === assunto.toLowerCase()) ||
@@ -72,7 +67,6 @@ app.post("/slides", async (req, res) => {
   }
 });
 
-// Start server
 const startServer = async () => {
   try {
     const mongoURI =
