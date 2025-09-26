@@ -1,4 +1,39 @@
-// ... código inicial igual ...
+const express = require("express");
+const mongoose = require("mongoose");
+const cors = require("cors");
+require("dotenv").config();
+
+const app = express();
+const PORT = process.env.PORT || 10000;
+
+// Middleware
+const corsOptions = {
+  origin: "*", // libera para qualquer origem
+  methods: ["GET", "POST"],
+  allowedHeaders: ["Content-Type"]
+};
+
+app.use(cors(corsOptions));
+app.use(express.json());
+
+// Schema Slide
+const slideSchema = new mongoose.Schema({
+  slide: {
+    data: String,
+    assunto: String,
+    texto: String,
+    autor: String
+  }
+});
+
+// Conecta ao Mongo Atlas e usa dbSlides, collection colTema
+const Slide = mongoose.model("colTema", slideSchema, "colTema");
+
+// Rotas
+app.get("/", (req, res) => {
+  res.send("API de Slides funcionando 🚀");
+});
+
 // Listar todos os slides
 app.get("/slides", async (req, res) => {
   try {
@@ -20,7 +55,6 @@ app.post("/slides", async (req, res) => {
     // Buscar slides existentes para evitar duplicatas por similaridade
     const slides = await Slide.find();
     const isSimilar = slides.some(s =>
-      // Pode usar uma função de similaridade do lado do servidor também
       (s.slide.assunto && s.slide.assunto.toLowerCase() === assunto.toLowerCase()) ||
       (s.slide.texto && s.slide.texto.toLowerCase() === texto.toLowerCase())
     );
@@ -37,3 +71,30 @@ app.post("/slides", async (req, res) => {
     res.status(500).json({ error: "Erro ao salvar slide" });
   }
 });
+
+// Start server
+const startServer = async () => {
+  try {
+    const mongoURI =
+      process.env.MONGO_URI ||
+      "mongodb+srv://sysdba:LFpxAegi7gMZuHlT@eightcluster.nblda.mongodb.net/dbSlides?retryWrites=true&w=majority&appName=eightCluster";
+
+    console.log("Tentando conectar ao MongoDB em:", mongoURI);
+
+    await mongoose.connect(mongoURI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true
+    });
+
+    console.log("✅ Conectado ao MongoDB");
+
+    app.listen(PORT, () => {
+      console.log(`Servidor rodando na porta ${PORT}`);
+    });
+  } catch (err) {
+    console.error("❌ Erro crítico ao conectar ao MongoDB:", err.message);
+    process.exit(1);
+  }
+};
+
+startServer();
