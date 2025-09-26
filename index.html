@@ -8,18 +8,27 @@
 </head>
 <body>
   <div class="container">
+    <div id="dataAtual" style="text-align:right; margin-bottom:10px;"></div>
     <h1>Cadastro de Slides</h1>
-
     <form id="slideForm">
       <input type="text" id="assunto" placeholder="Assunto" required>
       <textarea id="texto" placeholder="Texto do slide" required></textarea>
+      <input type="text" id="autor" placeholder="Autor" required>
       <button type="submit">Cadastrar</button>
     </form>
-
     <h2>Slides Cadastrados</h2>
     <ul id="slideList"></ul>
   </div>
-
   <script src="slides.js"></script>
+  <script>
+    // Exibe a data atual no topo
+    function exibeDataAtual() {
+      const now = new Date();
+      const formatted = now.toLocaleDateString('pt-BR') + ' ' + now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+      document.getElementById('dataAtual').innerText = formatted;
+    }
+    exibeDataAtual();
+    setInterval(exibeDataAtual, 60000);
+  </script>
 </body>
 </html>
