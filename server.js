@@ -6,14 +6,14 @@ require("dotenv").config();
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-// Middleware
+// CORS ajustado para liberar apenas seu frontend Vercel
 const corsOptions = {
-  origin: "https://slides-indol.vercel.app", // libera para qualquer origem
+  origin: ["https://slides-indol.vercel.app"],
   methods: ["GET", "POST"],
   allowedHeaders: ["Content-Type"]
 };
+app.use(cors(corsOptions)); // <--- ANTES das rotas
 
-app.use(cors(corsOptions));
 app.use(express.json());
 
 // Schema Slide
